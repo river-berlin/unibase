@@ -1,6 +1,6 @@
 # 🏡 Unibase
 
-<img src="flowerpots.jpg" alt="flowers in a flowerpot next to a window" width="200" height="200">
+<img src="readme-files/flowerpots.jpg" alt="flowers in a flowerpot next to a window" width="200" height="200">
 
 <br>
 
@@ -44,3 +44,7 @@ Namely, I wish to implement the following features in it
 - Stripe
 - [insert icon libraries here] (MIT Licensed hopefully)
 - Tamagui
+
+### How does this work?
+
+a project explaination can be found on the [how-everything-works.md](./how-everything-works.md) file, and paths where other explainations can be found
