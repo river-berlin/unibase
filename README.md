@@ -35,6 +35,8 @@ Namely, I wish to implement the following features in it
 - [ ] support for plausable analytics?
 - [ ] support for language changes, and other forms of localization
 - [ ] offline-first support
+- [ ] being able to search through files
+- [ ] being able to search through the settings page
 - [ ] all while having excellent documentation
 
 ## Tools used
@@ -45,6 +47,15 @@ Namely, I wish to implement the following features in it
 - [insert icon libraries here] (MIT Licensed hopefully)
 - Tamagui
 
-### How does this work?
+### How does this setup ?
 
 a project explaination can be found on the [how-everything-works.md](./how-everything-works.md) file, and paths where other explainations can be found
+
+### Simplified explaination
+
+at this point, I am creating (for display, as a placeholder), 
+- A complex shopping application
+- The shopping items can be searched through
+- There is a subscription service that can be used to reduce the prices of the items
+
+The app is going to add more complex features to everything, essentially being able to cancel a subscription (that will cancel after a 30 day period), or to be able to refund a purchase if the user does not like it
