@@ -54,8 +54,9 @@ a project explaination can be found on the [how-everything-works.md](./how-every
 ### Simplified explaination
 
 at this point, I am creating (for display, as a placeholder), 
-- A complex shopping application
-- The shopping items can be searched through
+- A complex language learning application
+- items can be searched through
+- items that can be bought
 - There is a subscription service that can be used to reduce the prices of the items
 
 The app is going to add more complex features to everything, essentially being able to cancel a subscription (that will cancel after a 30 day period), or to be able to refund a purchase if the user does not like it
