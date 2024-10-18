@@ -9,9 +9,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo-google-fonts/caveat": "^0.2.3",
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/html-elements": "^0.10.1",
     "@expo/metro-runtime": "~3.2.3",
+    "@headlessui/react": "^2.1.10",
+    "@heroicons/react": "^2.1.5",
     "@types/react": "~18.2.79",
     "autoprefixer": "^10.4.20",
     "expo": "~51.0.28",

@@ -12,6 +12,7 @@ Namely, I wish to implement the following features in it
 
 - [ ] support for both web and mobile (ios + android)
 - [ ] a start screen in both web and mobile
+  - [-] 10% there, created a basic page for the web that only works on macbook screen sizes for now
 - [ ] support for login and registration, and dedicated pages for so
 - [ ] support for oauth
 - [ ] support for login providers such as google, apple, etc...
@@ -54,9 +55,12 @@ a project explaination can be found on the [how-everything-works.md](./how-every
 ### Simplified explaination
 
 at this point, I am creating (for display, as a placeholder), 
-- A complex language learning application
-- items can be searched through
-- items that can be bought
-- There is a subscription service that can be used to reduce the prices of the items
+- A notebook alternative to google colab that uses runpod
+- Uses https://marimo.io/
+- It's possible to search through notebooks
+- It's possible to create/delete/update notebooks
+- Option for subscriptions
+- There is a subscription service that can give a person credits monthly (at a discounted rate), 
+  - which also gives credit discounts in the future
 
 The app is going to add more complex features to everything, essentially being able to cancel a subscription (that will cancel after a 30 day period), or to be able to refund a purchase if the user does not like it
