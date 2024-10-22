@@ -8,19 +8,6 @@ import {  useFonts, Caveat_400Regular } from '@expo-google-fonts/caveat';
 
 const A = styled(expoA)
 
-const backgroundDetails = require('../assets/backgrounds/details.json');
-
-const Background = () => {
-  return (
-    <Image
-      source={require('../assets/backgrounds/1.jpg')}
-      className="!w-full !h-full bg-white absolute left-0 top-0 -z-30"
-      resizeMode="cover"
-    >
-    </Image>
-  );
-};
-
 const SectionOne = () => {
   let [fontsLoaded] = useFonts({
     Caveat_400Regular,
@@ -31,13 +18,13 @@ const SectionOne = () => {
   }
 
   return (
-    <View className="w-full h-max flex flex-row flex-grow justify-center mt-[120px] items-center">
+    <View className="w-full h-max flex flex-col-reverse md:flex-row flex-grow justify-center md:mt-[120px] items-center p-[30px]">
       <Image
-        className="!w-[640px] !h-[360px] relative bg-white hover:bg-gray-100 text-black font-semibold border border-gray-400 rounded-lg shadow relative left-[20px] top-[100px]"
+        className="!w-[350px] !h-[196.88px] md:!w-[640px] md:!h-[360px] relative bg-white hover:bg-gray-100 text-black font-semibold border border-gray-400 rounded-lg shadow relative md:left-[20px] md:top-[100px]"
         source={require('../assets/jupyterlab-show.png')}
       />
-      <View className="m-[15px] relative right-[100px] bottom-[50px] flex items-center" >
-        <Text className="text-black text-6xl font-regular text-left relative text-black font-semibold rounded-lg p-[30px] bg-opacity-50" style={{ fontFamily: 'Caveat_400Regular'}}>
+      <View className="m-[15px] relative md:right-[100px] md:bottom-[50px] flex items-center md:items-start mb-[100px]" >
+        <Text className="text-black text-6xl font-regular text-center md:text-left relative text-black font-semibold rounded-lg bg-opacity-50 pb-[30px]" style={{ fontFamily: 'Caveat_400Regular'}}>
           Easy, Cheap <br/>GPU-powered <br/> Jupyter Notebooks
           <br />
           <ul className="mt-[20px]" >
@@ -45,12 +32,12 @@ const SectionOne = () => {
             <li className="text-lg">- GPUs starting from 0.5$/hour</li>
           </ul>
         </Text>
-        <button
-                type="button"
-                className="relative bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2 px-0 border border-blue-600 rounded-lg shadow w-3/4"
+        <A
+         className="relative bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2 px-4 border border-blue-600 rounded-lg shadow w-max text-lg"
+         href="/login"
               >
                 Get started
-        </button>
+        </A>
       </View>
     </View>
   );
@@ -67,8 +54,7 @@ const Sections = () => {
 export default function App() {
   return (
     <View className="flex w-full h-full">
-      <Background />
-      <View className="absolute inset-0 bg-white/70 -z-20 " />
+      <View className="inset-0 bg-white/70 -z-20 " />
 
       <View className="flex flex-col w-full h-full">
         <NavBar />

@@ -11,8 +11,8 @@ Unibase attempts to be an all inclusive template with a variety of features, so 
 Namely, I wish to implement the following features in it
 
 - [ ] support for both web and mobile (ios + android)
-- [ ] a start screen in both web and mobile
-  - [-] 10% there, created a basic page for the web that only works on macbook screen sizes for now
+- [x] a start screen in both web and mobile
+  - 50% there, created a basic page for the web and phone sizes
 - [ ] support for login and registration, and dedicated pages for so
 - [ ] support for oauth
 - [ ] support for login providers such as google, apple, etc...

@@ -4,7 +4,7 @@ import "./global.css"
 import { Slot } from "expo-router";
 
 export default function Layout() {
-  return (<View className="absolute inset-0">
+  return (<View className="inset-0">
     <Slot />
   </View>)
 }

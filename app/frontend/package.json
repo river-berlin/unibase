@@ -15,6 +15,9 @@
     "@expo/metro-runtime": "~3.2.3",
     "@headlessui/react": "^2.1.10",
     "@heroicons/react": "^2.1.5",
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@rneui/themed": "^4.0.0-rc.8",
+    "@supabase/supabase-js": "^2.45.6",
     "@types/react": "~18.2.79",
     "autoprefixer": "^10.4.20",
     "expo": "~51.0.28",
@@ -27,6 +30,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.74.5",
+    "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.10",
     "typescript": "~5.3.3"
   },
