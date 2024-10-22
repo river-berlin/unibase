@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "start": "supabase start",
+    "status": "supabase status",
+    "stop": "supabase stop"
+  },
   "devDependencies": {
     "supabase": "^1.192.5"
   }

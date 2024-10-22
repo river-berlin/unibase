@@ -1,0 +1,8 @@
+/* This file adds the requisite utility classes for Tailwind to work. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#root{
+    overflow: auto;
+}
