@@ -13,15 +13,23 @@ Namely, I wish to implement the following features in it
 - [ ] support for both web and mobile (ios + android)
 - [x] a start screen in both web and mobile
   - 50% there, created a basic page for the web and phone sizes
+  - [ ] Improve page to show 4 features that the application has
+
 - [ ] support for login and registration, and dedicated pages for so
-- [ ] support for oauth
-- [ ] support for login providers such as google, apple, etc...
-- [ ] support for phone/sms based auth? maybe?
-- [ ] 2fa support
-- [ ] support for https://tamagui.dev/ based styling
+  - [ ] Add River's Flow logo on the top
+  - [ ] Add a "Hi \<User's name\>" after a sign in flow has been completed
+  - [ ] Add a sign out button
+  - [ ] Send email confirmation after sign up
+  - [ ] Support for Google Auth
+  - [ ] support for phone/sms based auth? maybe?
+  - [ ] 2fa support
 - [ ] auto-shrinking and expanding menu options for different screen sizes
-- [ ] support for a settings page
-- [ ] support for modifyable user accounts
+
+- [ ] add a settings page
+- [ ] add "organizations" with multi-user control, user's have to have a minimum of 1 organization
+  - [ ] any app features (including billing) have to be implemented as a subset of the organization
+  - [ ] this exists for better user control flow
+  
 - [ ] support for a billing page, with invoices, and refund options
 - [ ] support for subscriptions if needed
 - [ ] usage of free, open source icons, which don't need attribution
@@ -38,6 +46,7 @@ Namely, I wish to implement the following features in it
 - [ ] offline-first support
 - [ ] being able to search through files
 - [ ] being able to search through the settings page
+- [ ] add pricing page
 - [ ] all while having excellent documentation
 
 ## Tools used

@@ -4,7 +4,7 @@ import "./global.css"
 import { Slot } from "expo-router";
 
 export default function Layout() {
-  return (<View className="inset-0">
+  return (<View className="inset-0 h-screen w-screen">
     <Slot />
   </View>)
 }

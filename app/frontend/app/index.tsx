@@ -34,7 +34,7 @@ const SectionOne = () => {
         </Text>
         <A
          className="relative bg-white hover:bg-gray-100 text-blue-600 font-semibold py-2 px-4 border border-blue-600 rounded-lg shadow w-max text-lg"
-         href="/login"
+         href="/welcome"
               >
                 Get started
         </A>
