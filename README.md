@@ -43,7 +43,6 @@ Namely, I wish to implement the following features in it
 - [ ] ability to choose to not implement some stuff via east option toggling in a page
 - [ ] support for plausable analytics?
 - [ ] support for language changes, and other forms of localization
-- [ ] offline-first support
 - [ ] being able to search through files
 - [ ] being able to search through the settings page
 - [ ] add pricing page
