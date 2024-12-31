@@ -1,53 +1,55 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: ./app/backend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3002:3002"
     environment:
+      - PORT=3002
       - DATABASE_URL=file:/app/prisma/dev.db
       - JWT_SECRET=development-secret-key
       - NODE_ENV=development
-      - S3_ENDPOINT=http://localstack:4566
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
+      - S3_ENDPOINT=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
       - AWS_REGION=us-east-1
     volumes:
       - ./app/backend:/app
       - /app/node_modules
+    command: npm run dev
     depends_on:
-      - localstack
+      - minio
 
   frontend:
     build:
       context: ./app/frontend
       dockerfile: Dockerfile
     ports:
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
+      - "19100:19000"
+      - "19101:19001"
+      - "19102:19002"
     environment:
       - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
       - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+      - EXPO_PUBLIC_API_URL=http://backend:3002
     volumes:
       - ./app/frontend:/app
       - /app/node_modules
     depends_on:
       - backend
 
-  localstack:
-    image: localstack/localstack:latest
+  minio:
+    image: minio/minio:latest
     ports:
-      - "4566:4566"
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      - SERVICES=s3
-      - DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - DOCKER_HOST=unix:///var/run/docker.sock
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
     volumes:
-      - ./localstack:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock 
+      - minio-data:/data
+
+volumes:
+  minio-data: 

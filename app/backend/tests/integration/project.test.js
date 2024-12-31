@@ -1,7 +1,5 @@
-const request = require('supertest');
-const { PrismaClient } = require('@prisma/client');
-const app = require('../../src/app');
-const prisma = new PrismaClient();
+import request from 'supertest';
+import { app, prisma } from '../../src/app.js';
 
 describe('Project Management API', () => {
   let testUser;

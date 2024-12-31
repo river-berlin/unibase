@@ -1,25 +1,28 @@
 FROM node:20-slim
 
-WORKDIR /app
-
 # Install dependencies required for Prisma
 RUN apt-get update -y && apt-get install -y openssl
 
-# Copy package files
+WORKDIR /app
+
+# Copy package files first
 COPY package*.json ./
-COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Generate Prisma Client
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
 RUN npx prisma generate
 
 # Copy the rest of the application
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 3000
+# Set development environment
+ENV NODE_ENV=development
 
-# Start the application
+# Expose port
+EXPOSE 3002
+
+# Use nodemon for development
 CMD ["npm", "run", "dev"] 

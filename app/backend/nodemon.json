@@ -1,0 +1,13 @@
+{
+  "watch": ["src/**/*"],
+  "ext": "js,json,prisma",
+  "ignore": ["src/**/*.test.js", "src/**/*.spec.js", "node_modules"],
+  "exec": "node src/index.js",
+  "events": {
+    "restart": "echo '\n> Server restarted\n'"
+  },
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": "500"
+} 
