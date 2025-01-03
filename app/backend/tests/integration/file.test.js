@@ -2,6 +2,20 @@ import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { S3Client, CreateBucketCommand, ListObjectsCommand, DeleteObjectsCommand, DeleteBucketCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { app, prisma } from '../../src/app.js';
+import dotenv from 'dotenv';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Load environment variables for tests
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = join(__dirname, '../../../.env');
+dotenv.config({ path: envPath });
+
+// Ensure GEMINI_API_KEY is set for tests
+if (!process.env.GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY must be set for tests');
+  process.exit(1);
+}
 
 const BUCKET_NAME = 'voicecad-files';
 const S3_ENDPOINT = process.env.S3_ENDPOINT || 'http://localhost:4566';
@@ -161,6 +175,35 @@ describe('File Management API', () => {
       await request(app)
         .delete('/api/files/non-existent-id')
         .expect(404);
+    });
+  });
+
+  describe('POST /api/files/modify-scad', () => {
+    it('should modify OpenSCAD code according to instructions', async () => {
+      const testData = {
+        scadContent: 'cube([10, 10, 10]);',
+        instructions: 'Make the cube twice as large'
+      };
+
+      const response = await request(app)
+        .post('/api/files/modify-scad')
+        .send(testData)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('modifiedCode');
+      expect(typeof response.body.modifiedCode).toBe('string');
+    });
+
+    it('should return 400 if required fields are missing', async () => {
+      await request(app)
+        .post('/api/files/modify-scad')
+        .send({ scadContent: 'cube([10, 10, 10]);' })
+        .expect(400);
+
+      await request(app)
+        .post('/api/files/modify-scad')
+        .send({ instructions: 'Make it bigger' })
+        .expect(400);
     });
   });
 }); 

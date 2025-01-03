@@ -1,20 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { S3Client } from '@aws-sdk/client-s3';
-import multer from 'multer';
-
 import userRoutes from './routes/users.js';
 import projectRoutes from './routes/projects.js';
 import fileRoutes from './routes/files.js';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const app = express();
 const prisma = new PrismaClient();

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, View, Text, Modal, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export const UserMenu = () => {
   const [visible, setVisible] = useState(false);
+  const [isAdmin] = useState(false); // TODO: Get this from auth context
 
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
@@ -12,7 +13,7 @@ export const UserMenu = () => {
   const handleLogout = () => {
     // TODO: Implement logout logic
     closeMenu();
-    router.replace('/login');
+    router.replace('/(drawer)/login');
   };
 
   return (
@@ -29,24 +30,29 @@ export const UserMenu = () => {
       >
         <Pressable className="flex-1" onPress={closeMenu}>
           <View className="absolute right-4 top-16 w-48 bg-white rounded-lg shadow-lg">
-            <TouchableOpacity 
-              className="p-4 border-b border-gray-200"
-              onPress={() => {
-                closeMenu();
-                router.push('/settings');
-              }}
-            >
-              <Text className="text-base">Settings</Text>
-            </TouchableOpacity>
+            {isAdmin && (
+              <TouchableOpacity 
+                className="p-4 border-b border-gray-200"
+                onPress={() => {
+                  closeMenu();
+                  router.push('/(drawer)/admin');
+                }}
+              >
+                <View className="flex-row items-center">
+                  <MaterialIcons name="admin-panel-settings" size={20} color="#4f46e5" className="mr-2" />
+                  <Text className="text-base text-purple-600">Admin Dashboard</Text>
+                </View>
+              </TouchableOpacity>
+            )}
             
             <TouchableOpacity 
               className="p-4 border-b border-gray-200"
               onPress={() => {
                 closeMenu();
-                router.push('/(drawer)/profile');
+                router.push('/(drawer)/settings');
               }}
             >
-              <Text className="text-base">Profile</Text>
+              <Text className="text-base">Settings</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 

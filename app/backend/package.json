@@ -1,6 +1,7 @@
 {
   "name": "voicecad-backend",
   "version": "1.0.0",
+  "license": "AGPL-3.0-or-later",
   "description": "Backend service for VoiceCAD application",
   "main": "src/index.js",
   "type": "module",
@@ -9,7 +10,7 @@
     "dev": "nodemon",
     "dev:debug": "nodemon --inspect",
     "dev:watch": "nodemon --watch src --ext js,json,prisma --ignore '*.test.js'",
-    "test": "NODE_OPTIONS=--experimental-vm-modules S3_ENDPOINT=http://localhost:9000 AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin jest",
+    "test": "NODE_OPTIONS=--experimental-vm-modules S3_ENDPOINT=http://localhost:9000 AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin DOTENV_CONFIG_PATH=../../.env node -r dotenv/config ./node_modules/.bin/jest",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -17,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.511.0",
     "@aws-sdk/lib-storage": "^3.511.0",
+    "@google/generative-ai": "^0.21.0",
     "@prisma/client": "^5.10.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

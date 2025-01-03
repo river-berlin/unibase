@@ -39,6 +39,17 @@ const DrawerLayout = () => {
         }}
       />
       <Drawer.Screen
+        name="admin/index"
+        options={{
+          headerTitle: 'Admin Dashboard',
+          drawerLabel: 'Admin',
+          drawerIcon: ({ size, color }) => (
+            <MaterialIcons name="admin-panel-settings" size={size} color={color} />
+          ),
+          headerRight,
+        }}
+      />
+      <Drawer.Screen
         name="login/index"
         options={{
           headerTitle: 'Login',
@@ -96,6 +107,14 @@ const DrawerLayout = () => {
           drawerIcon: ({ size, color }) => (
             <MaterialCommunityIcons name="folder-multiple" size={size} color={color} />
           ),
+        }}
+      />
+      <Drawer.Screen
+        name="projects/[id]"
+        options={{
+          headerTitle: 'Project',
+          drawerItemStyle: { display: 'none' },
+          headerRight,
         }}
       />
     </Drawer>

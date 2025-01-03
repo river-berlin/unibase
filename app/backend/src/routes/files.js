@@ -2,11 +2,48 @@ import express from 'express';
 import multer from 'multer';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { prisma, s3 } from '../app.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const BUCKET_NAME = 'voicecad-files';
+
+// Initialize Gemini
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('GEMINI_API_KEY environment variable must be set');
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Modify OpenSCAD file
+router.post('/modify-scad', async (req, res) => {
+  const { scadContent, instructions } = req.body;
+
+  if (!scadContent || !instructions) {
+    return res.status(400).json({ error: 'OpenSCAD content and instructions are required' });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `You are an expert in OpenSCAD programming. Please modify the following OpenSCAD code according to these instructions. Only return the modified code, nothing else.
+
+Instructions: ${instructions}
+
+OpenSCAD Code:
+${scadContent}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const modifiedCode = response.text();
+
+    res.status(200).json({ modifiedCode });
+  } catch (error) {
+    console.error('Error modifying OpenSCAD file:', error);
+    res.status(500).json({ error: 'Error modifying OpenSCAD file' });
+  }
+});
 
 // Upload file
 router.post('/upload', upload.single('file'), async (req, res) => {
