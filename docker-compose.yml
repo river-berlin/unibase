@@ -26,6 +26,7 @@ services:
       - /app/node_modules
       - sqlite-data:/data
     environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PORT=3002
       - NODE_ENV=development
     depends_on:

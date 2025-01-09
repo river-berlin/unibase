@@ -1,7 +1,11 @@
+import { Router } from 'express';
+import { authenticateToken } from '../../middleware/auth.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_SCENE } from '../constants/defaults.js';
+import { DEFAULT_SCENE } from '../../constants/defaults.js';
+
+const router = Router();
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable must be set');
@@ -23,7 +27,7 @@ const polyhedronDoc = fs.readFileSync(path.join(docsPath, 'polyhedron.md'), 'utf
  * @param {Object} sceneRotation - Current rotation of the scene
  * @param {Object} manualJson - Optional manual JSON input to override generation
  */
-export async function generateObjects(currentObjects = DEFAULT_SCENE.objects, instructions, sceneRotation = { x: 0, y: 0, z: 0 }, manualJson = null) {
+async function generateObjects(currentObjects = DEFAULT_SCENE.objects, instructions, sceneRotation = { x: 0, y: 0, z: 0 }, manualJson = null) {
   // If manual JSON is provided, validate it against the documentation
   if (manualJson) {
     try {
@@ -171,4 +175,43 @@ Return only the JSON object containing an "objects" array and a "scene" object f
     scene: parsedResponse.scene || { rotation: sceneRotation },
     reasoning: fullText
   };
-} 
+}
+
+/**
+ * Generate 3D objects based on natural language instructions
+ * 
+ * @route POST /language-models/gemini/generate-objects
+ */
+router.post('/generate-objects', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      currentObjects, 
+      instructions, 
+      sceneRotation = { x: 0, y: 0, z: 0 }, 
+      manualJson = null 
+    } = req.body;
+
+    if (!instructions && !manualJson) {
+      return res.status(400).json({ 
+        error: 'Either instructions or manualJson must be provided' 
+      });
+    }
+
+    const result = await generateObjects(
+      currentObjects,
+      instructions,
+      sceneRotation,
+      manualJson
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error generating objects:', error);
+    res.status(500).json({ 
+      error: 'Error generating objects',
+      details: error.message 
+    });
+  }
+});
+
+export default router; 

@@ -26,6 +26,7 @@ export default function DashboardPage() {
     try {
       setError(null);
       const response = await api.projects.getProject(id as string);
+      console.log(response);
       // Initialize scene state from project data if available
       if (response.data.sceneState) {
         setSceneState(response.data.sceneState);

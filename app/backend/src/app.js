@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import { S3Client } from '@aws-sdk/client-s3';
 import authRoutes from './routes/auth/index.js';
-import folderRoutes from './routes/folders.js';
-import projectRoutes from './routes/projects.js';
+import folderRoutes from './routes/folders/index.js';
+import projectRoutes from './routes/projects/index.js';
+import languageModelRoutes from './routes/language-models/index.js';
 
 const app = express();
 
@@ -47,6 +48,7 @@ const s3 = new S3Client({
 app.use('/auth', authRoutes);
 app.use('/folders', folderRoutes);
 app.use('/projects', projectRoutes);
+app.use('/language-models', languageModelRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
