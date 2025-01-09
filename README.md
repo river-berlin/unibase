@@ -120,7 +120,6 @@ voicecad/
 
 ### Backend
 - Node.js/Express
-- Prisma with SQLite
 - LocalStack for S3
 
 ## 📝 License
@@ -132,5 +131,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [React Native](https://reactnative.dev)
 - [Expo](https://expo.dev)
 - [Express.js](https://expressjs.com)
-- [Prisma](https://www.prisma.io)
 - [LocalStack](https://localstack.cloud)

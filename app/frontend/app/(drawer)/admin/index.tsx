@@ -1,78 +1,81 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
+import { auth } from '../../../services/api';
 
-export default function AdminDashboard() {
-  const stats = [
-    { title: 'Total Users', value: '1,234', icon: 'account-group' },
-    { title: 'Active Projects', value: '789', icon: 'folder-multiple' },
-    { title: 'Storage Used', value: '2.1 TB', icon: 'database' },
-    { title: 'Daily Active', value: '456', icon: 'chart-line' },
-  ];
+export default function AdminIndex() {
+  const router = useRouter();
+  const currentUser = auth.getCurrentUser();
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
-  const recentUsers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'User' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'Admin' },
-    { id: '3', name: 'Bob Johnson', email: 'bob@example.com', role: 'User' },
-  ];
+  useEffect(() => {
+    if (!currentUser?.is_admin) {
+      Alert.alert('Access Denied', 'Admin access required');
+      setIsAuthorized(false);
+    }
+  }, []);
+
+  if (!isAuthorized) {
+    return <Redirect href="/" />;
+  }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="p-4">
-        {/* Stats Grid */}
-        <View className="flex-row flex-wrap gap-4 mb-6">
-          {stats.map((stat) => (
-            <View key={stat.title} className="flex-1 min-w-[150px] bg-white p-4 rounded-xl shadow-sm">
-              <MaterialCommunityIcons name={stat.icon} size={24} color="#4f46e5" />
-              <Text className="text-2xl font-bold mt-2">{stat.value}</Text>
-              <Text className="text-gray-600">{stat.title}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Recent Users */}
-        <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <Text className="text-xl font-bold mb-4">Recent Users</Text>
-          <View className="space-y-4">
-            {recentUsers.map((user) => (
-              <View key={user.id} className="flex-row items-center justify-between py-2 border-b border-gray-100">
-                <View>
-                  <Text className="font-medium">{user.name}</Text>
-                  <Text className="text-gray-600 text-sm">{user.email}</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Text className={`mr-2 ${user.role === 'Admin' ? 'text-purple-600' : 'text-gray-600'}`}>
-                    {user.role}
-                  </Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#9ca3af" />
-                </View>
-              </View>
-            ))}
+    <View style={styles.container}>
+      <Text style={styles.title}>Admin Dashboard</Text>
+      
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={() => router.push('/admin/users')}
+      >
+        <View style={styles.cardContent}>
+          <MaterialCommunityIcons name="account-group" size={32} color="black" />
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>User Management</Text>
+            <Text style={styles.cardDescription}>
+              View, edit, and manage user accounts
+            </Text>
           </View>
-          <Pressable className="mt-4 py-2">
-            <Text className="text-purple-600 text-center">View All Users</Text>
-          </Pressable>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#666" />
         </View>
-
-        {/* Quick Actions */}
-        <View className="bg-white rounded-xl shadow-sm p-4">
-          <Text className="text-xl font-bold mb-4">Quick Actions</Text>
-          <View className="flex-row flex-wrap gap-4">
-            <Pressable className="flex-1 min-w-[150px] p-4 bg-gray-50 rounded-lg">
-              <MaterialCommunityIcons name="account-plus" size={24} color="#4f46e5" />
-              <Text className="mt-2 font-medium">Add User</Text>
-            </Pressable>
-            <Pressable className="flex-1 min-w-[150px] p-4 bg-gray-50 rounded-lg">
-              <MaterialCommunityIcons name="cog" size={24} color="#4f46e5" />
-              <Text className="mt-2 font-medium">System Settings</Text>
-            </Pressable>
-            <Pressable className="flex-1 min-w-[150px] p-4 bg-gray-50 rounded-lg">
-              <MaterialCommunityIcons name="backup-restore" size={24} color="#4f46e5" />
-              <Text className="mt-2 font-medium">Backup Data</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
+      </TouchableOpacity>
+    </View>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardText: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  cardDescription: {
+    color: '#666',
+    marginTop: 4,
+  },
+}); 

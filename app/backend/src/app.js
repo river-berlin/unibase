@@ -1,17 +1,36 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
 import { S3Client } from '@aws-sdk/client-s3';
-import userRoutes from './routes/users.js';
+import authRoutes from './routes/auth/index.js';
+import folderRoutes from './routes/folders.js';
 import projectRoutes from './routes/projects.js';
-import fileRoutes from './routes/files.js';
 
 const app = express();
-const prisma = new PrismaClient();
 
-// Middleware
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: true, // Allow all origins temporarily for debugging
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  preflightContinue: false,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS middleware before other middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
+
+// Ping test endpoint
+app.get('/ping', (req, res) => {
+  res.json({ message: 'pong', timestamp: new Date().toISOString() });
+});
 
 // Create S3 client
 const s3 = new S3Client({
@@ -25,13 +44,9 @@ const s3 = new S3Client({
 });
 
 // Routes
-app.use('/api/users', userRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/files', fileRoutes);
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'healthy' });
-});
+app.use('/auth', authRoutes);
+app.use('/folders', folderRoutes);
+app.use('/projects', projectRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -39,4 +54,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something broke!' });
 });
 
-export { app, prisma, s3 }; 
+export { app, s3 }; 

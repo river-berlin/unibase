@@ -2,35 +2,17 @@ name: Backend Tests
 
 on:
   push:
-    branches: [ main ]
     paths:
       - 'app/backend/**'
+      - '.github/workflows/backend-tests.yml'
   pull_request:
-    branches: [ main ]
     paths:
       - 'app/backend/**'
+      - '.github/workflows/backend-tests.yml'
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    services:
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-          - 9001:9001
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        volumes:
-          - /data
-        command: server /data --console-address ":9001"
 
     steps:
       - uses: actions/checkout@v4
@@ -46,26 +28,13 @@ jobs:
         working-directory: app/backend
         run: npm ci
 
-      - name: Generate Prisma Client
-        working-directory: app/backend
-        run: npx prisma generate
-
       - name: Run tests
         working-directory: app/backend
-        env:
-          DATABASE_URL: file:./prisma/test.db
-          JWT_SECRET: test-secret-key
-          NODE_ENV: test
-          S3_ENDPOINT: http://localhost:9000
-          AWS_ACCESS_KEY_ID: minioadmin
-          AWS_SECRET_ACCESS_KEY: minioadmin
-          AWS_REGION: us-east-1
         run: npm test
-
-      - name: Upload test results
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Backend Tests
-          path: app/backend/junit.xml
-          reporter: jest-junit 
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_REGION: us-east-1
+          S3_ENDPOINT: http://localhost:4566 

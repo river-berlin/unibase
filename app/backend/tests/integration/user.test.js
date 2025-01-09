@@ -1,89 +1,93 @@
 import request from 'supertest';
-import { app, prisma } from '../../src/app.js';
+import { app } from '../../src/app.js';
 
-describe('User Management API', () => {
-  beforeEach(async () => {
-    // Clean up the database before each test
-    await prisma.user.deleteMany();
+describe('User API', () => {
+  beforeEach(() => {
+    // Clear users before each test
+    global.users = new Map();
   });
 
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
-
-  describe('POST /api/users', () => {
+  describe('POST /api/users/register', () => {
     it('should create a new user', async () => {
       const userData = {
         email: 'test@example.com',
-        password: 'password123',
-        name: 'Test User',
+        password: 'password123'
       };
 
       const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(201);
+        .post('/api/users/register')
+        .send(userData);
 
-      expect(response.body).toHaveProperty('id');
-      expect(response.body.email).toBe(userData.email);
-      expect(response.body.name).toBe(userData.name);
-      expect(response.body).not.toHaveProperty('password');
-
-      // Verify user was created in database
-      const user = await prisma.user.findUnique({
-        where: { email: userData.email },
-      });
-      expect(user).toBeTruthy();
-      expect(user.email).toBe(userData.email);
+      expect(response.status).toBe(201);
+      expect(response.body.user).toHaveProperty('id');
+      expect(response.body.user.email).toBe(userData.email);
+      expect(response.body).toHaveProperty('token');
     });
 
-    it('should not create user with existing email', async () => {
+    it('should not create a user with existing email', async () => {
       const userData = {
         email: 'test@example.com',
-        password: 'password123',
-        name: 'Test User',
+        password: 'password123'
       };
 
-      await request(app).post('/api/users').send(userData);
-
+      // Create first user
       await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(400);
+        .post('/api/users/register')
+        .send(userData);
+
+      // Try to create second user with same email
+      const response = await request(app)
+        .post('/api/users/register')
+        .send(userData);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('User already exists');
     });
   });
 
-  describe('DELETE /api/users/:id', () => {
-    it('should delete an existing user', async () => {
-      // Create a user first
+  describe('POST /api/users/login', () => {
+    it('should login existing user', async () => {
       const userData = {
-        email: 'delete@example.com',
-        password: 'password123',
-        name: 'Delete User',
+        email: 'test@example.com',
+        password: 'password123'
       };
 
-      const createResponse = await request(app)
-        .post('/api/users')
+      // Register user first
+      await request(app)
+        .post('/api/users/register')
         .send(userData);
 
-      const userId = createResponse.body.id;
+      // Try to login
+      const response = await request(app)
+        .post('/api/users/login')
+        .send(userData);
 
-      // Delete the user
-      await request(app)
-        .delete(`/api/users/${userId}`)
-        .expect(204);
-
-      // Verify user was deleted
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-      expect(user).toBeNull();
+      expect(response.status).toBe(200);
+      expect(response.body.user.email).toBe(userData.email);
+      expect(response.body).toHaveProperty('token');
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should not login with wrong password', async () => {
+      const userData = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+
+      // Register user first
       await request(app)
-        .delete('/api/users/non-existent-id')
-        .expect(404);
+        .post('/api/users/register')
+        .send(userData);
+
+      // Try to login with wrong password
+      const response = await request(app)
+        .post('/api/users/login')
+        .send({
+          email: userData.email,
+          password: 'wrongpassword'
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe('Invalid credentials');
     });
   });
 }); 

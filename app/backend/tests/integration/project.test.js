@@ -1,26 +1,15 @@
 import request from 'supertest';
-import { app, prisma } from '../../src/app.js';
+import { app } from '../../src/app.js';
 
-describe('Project Management API', () => {
-  let testUser;
+describe('Project API', () => {
+  const testUser = {
+    id: 'test-user-id',
+    email: 'test@example.com'
+  };
 
-  beforeEach(async () => {
-    // Clean up the database before each test
-    await prisma.project.deleteMany();
-    await prisma.user.deleteMany();
-
-    // Create a test user
-    testUser = await prisma.user.create({
-      data: {
-        email: 'project-test@example.com',
-        password: 'hashedPassword123',
-        name: 'Project Test User',
-      },
-    });
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
+  beforeEach(() => {
+    // Clear projects before each test
+    global.projects = new Map();
   });
 
   describe('POST /api/projects', () => {
@@ -28,96 +17,105 @@ describe('Project Management API', () => {
       const projectData = {
         name: 'Test Project',
         description: 'A test project',
-        userId: testUser.id,
+        userId: testUser.id
       };
 
       const response = await request(app)
         .post('/api/projects')
-        .send(projectData)
-        .expect(201);
+        .send(projectData);
 
+      expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(projectData.name);
       expect(response.body.description).toBe(projectData.description);
       expect(response.body.userId).toBe(testUser.id);
-
-      // Verify project was created in database
-      const project = await prisma.project.findUnique({
-        where: { id: response.body.id },
-      });
-      expect(project).toBeTruthy();
-      expect(project.name).toBe(projectData.name);
     });
 
-    it('should not create project without required fields', async () => {
-      const projectData = {
-        description: 'Missing name field',
-      };
-
-      await request(app)
+    it('should not create a project without required fields', async () => {
+      const response = await request(app)
         .post('/api/projects')
-        .send(projectData)
-        .expect(400);
+        .send({
+          description: 'Missing name and userId'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Name and userId are required');
+    });
+  });
+
+  describe('GET /api/projects/user/:userId', () => {
+    it('should get all projects for a user', async () => {
+      // Create test projects
+      const projects = [
+        {
+          name: 'Project 1',
+          description: 'First project',
+          userId: testUser.id
+        },
+        {
+          name: 'Project 2',
+          description: 'Second project',
+          userId: testUser.id
+        }
+      ];
+
+      // Add projects to storage
+      for (const project of projects) {
+        await request(app)
+          .post('/api/projects')
+          .send(project);
+      }
+
+      const response = await request(app)
+        .get(`/api/projects/user/${testUser.id}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(2);
+      expect(response.body[0].userId).toBe(testUser.id);
+      expect(response.body[1].userId).toBe(testUser.id);
+    });
+
+    it('should return empty array for user with no projects', async () => {
+      const response = await request(app)
+        .get('/api/projects/user/non-existent-user');
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBe(0);
     });
   });
 
   describe('DELETE /api/projects/:id', () => {
     it('should delete an existing project', async () => {
       // Create a project first
-      const project = await prisma.project.create({
-        data: {
+      const createResponse = await request(app)
+        .post('/api/projects')
+        .send({
           name: 'Project to Delete',
           description: 'This project will be deleted',
-          userId: testUser.id,
-        },
-      });
+          userId: testUser.id
+        });
 
-      // Delete the project
-      await request(app)
-        .delete(`/api/projects/${project.id}`)
-        .expect(204);
+      const projectId = createResponse.body.id;
+
+      const response = await request(app)
+        .delete(`/api/projects/${projectId}`);
+
+      expect(response.status).toBe(204);
 
       // Verify project was deleted
-      const deletedProject = await prisma.project.findUnique({
-        where: { id: project.id },
-      });
-      expect(deletedProject).toBeNull();
+      const getResponse = await request(app)
+        .get(`/api/projects/user/${testUser.id}`);
+      expect(getResponse.body.find(p => p.id === projectId)).toBeUndefined();
     });
 
     it('should return 404 for non-existent project', async () => {
-      await request(app)
-        .delete('/api/projects/non-existent-id')
-        .expect(404);
-    });
-  });
-
-  describe('GET /api/projects', () => {
-    it('should list all projects for a user', async () => {
-      // Create multiple projects
-      await prisma.project.createMany({
-        data: [
-          {
-            name: 'Project 1',
-            description: 'First project',
-            userId: testUser.id,
-          },
-          {
-            name: 'Project 2',
-            description: 'Second project',
-            userId: testUser.id,
-          },
-        ],
-      });
-
       const response = await request(app)
-        .get('/api/projects')
-        .query({ userId: testUser.id })
-        .expect(200);
+        .delete('/api/projects/non-existent-id');
 
-      expect(Array.isArray(response.body)).toBeTruthy();
-      expect(response.body).toHaveLength(2);
-      expect(response.body[0]).toHaveProperty('name');
-      expect(response.body[0]).toHaveProperty('description');
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Project not found');
     });
   });
 }); 

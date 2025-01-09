@@ -1,91 +1,127 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { MicButton } from './MicButton';
-
-interface OpenSCADState {
-  code: string;
-  isLoading: boolean;
-  error: string | null;
-}
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type { Object3D } from 'backend-js-api/src/services/ProjectService';
 
 interface CommandTabsProps {
   projectId: string;
-  scadState: OpenSCADState;
-  onModifyOpenSCAD: (instructions: string) => Promise<void>;
+  objects: Object3D[];
+  isLoading: boolean;
+  error: string | null;
+  onGenerateObjects: (instructions: string) => Promise<void>;
 }
 
-export function CommandTabs({ projectId, scadState, onModifyOpenSCAD }: CommandTabsProps) {
-  const [activeTab, setActiveTab] = useState<'command' | 'code'>('command');
-  const [commandText, setCommandText] = useState('');
+export function CommandTabs({ projectId, objects, isLoading, error, onGenerateObjects }: CommandTabsProps) {
+  const [activeTab, setActiveTab] = useState<'command' | 'objects'>('command');
+  const [instruction, setInstruction] = useState('');
+  const [primitivesExpanded, setPrimitivesExpanded] = useState(true);
+  const [currentObjectExpanded, setCurrentObjectExpanded] = useState(true);
 
-  const handleMicPress = () => {
-    // TODO: Implement voice input logic
-    console.log('Mic pressed');
-  };
-
-  const handleCommandSubmit = async () => {
-    if (!commandText.trim()) return;
-    
-    try {
-      await onModifyOpenSCAD(commandText);
-      setCommandText('');
-    } catch (error) {
-      console.error('Error submitting command:', error);
+  const renderCodeContent = () => {
+    if (activeTab === 'command') {
+      return (
+        <View style={styles.commandSection}>
+          <View style={styles.inputSection}>
+            <TextInput
+              style={styles.input}
+              value={instruction}
+              onChangeText={setInstruction}
+              placeholder="Enter your command..."
+              multiline
+            />
+            <View style={styles.buttonContainer}>
+              <Pressable 
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={() => !isLoading && onGenerateObjects(instruction)}
+                disabled={isLoading}
+              >
+                <MaterialCommunityIcons 
+                  name={isLoading ? "loading" : "arrow-right-circle"} 
+                  size={16} 
+                  color={isLoading ? "#666" : "#000"} 
+                />
+                <Text style={[styles.buttonText, isLoading && styles.buttonTextDisabled]}>
+                  {isLoading ? 'Generating...' : 'Generate'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+          
+          <View style={styles.outputSection}>
+            <Text style={styles.sectionLabel}>Output & Status</Text>
+            <ScrollView style={styles.reasoningScroll}>
+              {error ? (
+                <Text style={styles.errorText}>{error}</Text>
+              ) : (
+                <Text style={styles.reasoningText}>
+                  {isLoading ? 'Generating objects...' : 'Ready to generate objects.'}
+                </Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      );
+    } else if (activeTab === 'objects') {
+      return (
+        <View style={styles.codeSection}>
+          {Platform.OS === 'web' ? (
+            <ScrollView style={styles.objectsScroll}>
+              <View style={styles.objectGroup}>
+                <Pressable 
+                  style={styles.groupHeader}
+                  onPress={() => setPrimitivesExpanded(!primitivesExpanded)}
+                >
+                  <MaterialCommunityIcons 
+                    name={primitivesExpanded ? "chevron-down" : "chevron-right"} 
+                    size={20} 
+                    color="#666"
+                  />
+                  <Text style={styles.groupTitle}>Primitives</Text>
+                </Pressable>
+                {primitivesExpanded && (
+                  <View style={styles.primitivesList}>
+                    <Text style={styles.primitiveItem}>• Cube</Text>
+                    <Text style={styles.primitiveItem}>• Sphere</Text>
+                    <Text style={styles.primitiveItem}>• Cylinder</Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.objectGroup}>
+                <Pressable 
+                  style={styles.groupHeader}
+                  onPress={() => setCurrentObjectExpanded(!currentObjectExpanded)}
+                >
+                  <MaterialCommunityIcons 
+                    name={currentObjectExpanded ? "chevron-down" : "chevron-right"} 
+                    size={20} 
+                    color="#666"
+                  />
+                  <Text style={styles.groupTitle}>Current Objects</Text>
+                </Pressable>
+                {currentObjectExpanded && (
+                  <View style={styles.currentObjectContent}>
+                    <SyntaxHighlighter language="json" style={oneLight}>
+                      {JSON.stringify(objects || [], null, 2)}
+                    </SyntaxHighlighter>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          ) : (
+            <Text>{JSON.stringify(objects || [], null, 2)}</Text>
+          )}
+        </View>
+      );
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Main Content Area */}
       <View style={styles.content}>
-        {activeTab === 'command' ? (
-          <View style={styles.commandContainer}>
-            <TextInput
-              style={styles.commandInput}
-              value={commandText}
-              onChangeText={setCommandText}
-              multiline
-              placeholder="Type or speak your CAD commands here..."
-              placeholderTextColor="#999"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!scadState.isLoading}
-            />
-            <View style={styles.commandControls}>
-              <MicButton onPress={handleMicPress} disabled={scadState.isLoading} />
-              {scadState.isLoading ? (
-                <View style={styles.submitButton}>
-                  <ActivityIndicator color="#fff" />
-                </View>
-              ) : (
-                <Pressable 
-                  onPress={handleCommandSubmit}
-                  style={styles.submitButton}
-                  disabled={!commandText.trim()}
-                >
-                  <MaterialCommunityIcons 
-                    name="send" 
-                    size={24} 
-                    color={commandText.trim() ? '#fff' : '#ccc'} 
-                  />
-                </Pressable>
-              )}
-            </View>
-            {scadState.error && (
-              <Text style={styles.errorText}>{scadState.error}</Text>
-            )}
-          </View>
-        ) : (
-          <TextInput
-            style={styles.codeEditor}
-            value={scadState.code}
-            multiline
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={false}
-          />
-        )}
+        {renderCodeContent()}
       </View>
 
       {/* Tab Bar */}
@@ -105,18 +141,18 @@ export function CommandTabs({ projectId, scadState, onModifyOpenSCAD }: CommandT
           ]}>Command</Text>
         </Pressable>
         <Pressable 
-          style={[styles.tab, activeTab === 'code' && styles.activeTab]}
-          onPress={() => setActiveTab('code')}
+          style={[styles.tab, activeTab === 'objects' && styles.activeTab]}
+          onPress={() => setActiveTab('objects')}
         >
           <MaterialCommunityIcons 
-            name="code-braces" 
+            name="code-json" 
             size={24} 
-            color={activeTab === 'code' ? '#4f46e5' : '#666'} 
+            color={activeTab === 'objects' ? '#4f46e5' : '#666'} 
           />
           <Text style={[
             styles.tabText,
-            activeTab === 'code' && styles.activeTabText
-          ]}>OpenSCAD</Text>
+            activeTab === 'objects' && styles.activeTabText
+          ]}>Objects</Text>
         </Pressable>
       </View>
     </View>
@@ -126,105 +162,148 @@ export function CommandTabs({ projectId, scadState, onModifyOpenSCAD }: CommandT
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
     padding: 16,
   },
-  commandContainer: {
+  commandSection: {
     flex: 1,
+    gap: 16,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  inputSection: {
+    flex: 1,
+    minHeight: 150,
+    gap: 16,
     position: 'relative',
   },
-  commandInput: {
+  outputSection: {
     flex: 1,
-    color: '#333',
-    fontFamily: Platform.select({
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-    fontSize: 14,
-    lineHeight: 20,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    minHeight: 150,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
   },
-  commandControls: {
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 8,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    paddingRight: 50,
+    fontSize: 16,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  buttonContainer: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    right: 8,
+    bottom: 8,
+  },
+  button: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#000',
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  buttonDisabled: {
+    borderColor: '#ccc',
+  },
+  buttonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  buttonTextDisabled: {
+    color: '#666',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+  },
+  codeSection: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  reasoningScroll: {
+    flex: 1,
+  },
+  reasoningText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  objectsScroll: {
+    flex: 1,
+    padding: 16,
+  },
+  objectGroup: {
+    marginBottom: 16,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  groupTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  primitivesList: {
+    paddingLeft: 28,
+    paddingTop: 8,
     gap: 8,
   },
-  submitButton: {
-    backgroundColor: '#4f46e5',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  codeEditor: {
-    flex: 1,
-    color: '#333',
-    fontFamily: Platform.select({
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+  primitiveItem: {
     fontSize: 14,
-    lineHeight: 20,
-    padding: 12,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
+    color: '#4b5563',
+  },
+  currentObjectContent: {
+    paddingLeft: 28,
+    paddingTop: 8,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
+    borderTopColor: '#e0e0e0',
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
     gap: 8,
+    paddingVertical: 12,
   },
   activeTab: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: '#f3f4f6',
   },
   tabText: {
-    color: '#666',
     fontSize: 14,
-    fontWeight: '600',
+    color: '#666',
   },
   activeTabText: {
     color: '#4f46e5',
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 12,
-    marginTop: 8,
-    paddingHorizontal: 12,
+    fontWeight: '500',
   },
 }); 

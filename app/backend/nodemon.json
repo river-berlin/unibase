@@ -1,6 +1,6 @@
 {
   "watch": ["src/**/*"],
-  "ext": "js,json,prisma",
+  "ext": "js,json",
   "ignore": ["src/**/*.test.js", "src/**/*.spec.js", "node_modules"],
   "exec": "node src/index.js",
   "events": {

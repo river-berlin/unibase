@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile.prod
       args:
         - NODE_ENV=production
-    ports:
-      - "3002:3002"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PORT=3002
@@ -31,7 +29,6 @@ services:
         - NODE_ENV=production
     ports:
       - "8081:8081"
-      - "19000:19000"
     environment:
       - EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
       - PORT=8081
@@ -41,9 +38,6 @@ services:
 
   minio:
     image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}

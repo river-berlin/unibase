@@ -1,60 +1,46 @@
 services:
-  backend:
-    image: node:20-slim
-    command: sh -c "apt-get update -y && apt-get install -y openssl && npm ci && npx prisma generate && npm run dev"
-    working_dir: /app
-    ports:
-      - "3002:3002"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - PORT=3002
-      - DATABASE_URL=file:/app/prisma/dev.db
-      - JWT_SECRET=development-secret-key
-      - NODE_ENV=development
-      - S3_ENDPOINT=http://minio:9000
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
-      - AWS_REGION=us-east-1
-    volumes:
-      - ./app/backend:/app
-      - backend_node_modules:/app/node_modules
-    depends_on:
-      - minio
-
   frontend:
-    image: node:20-slim
-    command: sh -c "npm ci && npm start"
-    working_dir: /app
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
-    environment:
-      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
-      - REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
-      - EXPO_PUBLIC_API_URL=http://backend:3002
-      - PORT=8081
-      - EXPO_PORT=8081
     volumes:
       - ./app/frontend:/app
-      - frontend_node_modules:/app/node_modules
+      - ./app/backend-js-api:/backend-js-api
+      - /app/node_modules
+      - /backend-js-api/node_modules
+    environment:
+      - NODE_ENV=development
     depends_on:
       - backend
 
+  backend:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./app/backend:/app
+      - /app/node_modules
+      - sqlite-data:/data
+    environment:
+      - PORT=3002
+      - NODE_ENV=development
+    depends_on:
+      - minio
+
   minio:
     image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
+    restart: unless-stopped
 
 volumes:
   minio-data:
-  backend_node_modules:
-  frontend_node_modules: 
+  sqlite-data: 
