@@ -169,29 +169,29 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
     sceneRef.current = scene;
     // Expose scene reference globally for complex primitives
     window.sceneRef = sceneRef;
-    scene.background = new THREE.Color(0xf0f0f0);
+    scene.background = new THREE.Color(0xffffff);
 
     // Add axes helper (red = X, green = Y, blue = Z)
-    const axesHelper = new THREE.AxesHelper(1000); // Large size to appear "infinite"
-    scene.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(1000); // Large size to appear "infinite"
+    // scene.add(axesHelper);
 
     // Add floor plane
-    const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+    const planeGeometry = new THREE.PlaneGeometry(500, 500);
     
     // Create a canvas for the texture
     const canvas = document.createElement('canvas');
-    const size = 512; // texture size
+    const size = 200; // texture size
     canvas.width = size;
     canvas.height = size;
     const context = canvas.getContext('2d');
     if (context) {
-      // Fill background with very light grey
-      context.fillStyle = '#f5f5f5';
+      // Fill background with white
+      context.fillStyle = '#ffffff';
       context.fillRect(0, 0, size, size);
 
       // Draw large grid
-      context.strokeStyle = '#666666';
-      context.lineWidth = 2;
+      context.strokeStyle = '#000';
+      context.lineWidth = 3;
       const largeGridSize = size / 4; // 4x4 large grid
       for (let i = 0; i <= size; i += largeGridSize) {
         context.beginPath();
@@ -205,7 +205,7 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
       }
 
       // Draw smaller grid within each large square
-      context.strokeStyle = '#737373';
+      context.strokeStyle = '#111';
       context.lineWidth = 1;
       const smallGridSize = largeGridSize / 4; // 4x4 small grid within each large grid
       for (let i = 0; i <= size; i += smallGridSize) {
@@ -229,7 +229,8 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
       map: texture,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.3,
+      color: 0xffffff,
     });
 
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -251,12 +252,12 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
 
     // Set up camera
     const camera = new THREE.PerspectiveCamera(
-      50,
+      30,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
-      1000
+      10000
     );
-    camera.position.set(5, 5, 5);
+    camera.position.set(500, 500, 500);
     cameraRef.current = camera;
 
     // Set up renderer
@@ -322,7 +323,7 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       {isLoading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#4f46e5" />
+          <ActivityIndicator size="large" color="#dbdad6" />
         </View>
       )}
     </View>

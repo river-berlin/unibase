@@ -57,8 +57,15 @@ export default function DashboardPage() {
   };
 
   return (
-    <View className="flex flex-1 flex-row">
+    <View className="flex flex-1 flex-column">
       <View className="flex-1 border-r border-[#e0e0e0]">
+        <View className="flex-1 p-4 bg-white">
+            <ThreeRenderer 
+              projectId={id as string}
+              objects={sceneState.objects}
+              sceneRotation={sceneState.scene?.rotation}
+            />
+        </View>
         <CommandTabs 
           projectId={id as string} 
           objects={sceneState.objects}
@@ -67,15 +74,7 @@ export default function DashboardPage() {
           onGenerateObjects={handleGenerateObjects}
         />
       </View>
-      <View className="flex-1 p-4 bg-white">
-        <View className="flex-1 bg-white rounded-lg border border-[#e0e0e0]">
-          <ThreeRenderer 
-            projectId={id as string}
-            objects={sceneState.objects}
-            sceneRotation={sceneState.scene?.rotation}
-          />
-        </View>
-      </View>
+
     </View>
   );
 }

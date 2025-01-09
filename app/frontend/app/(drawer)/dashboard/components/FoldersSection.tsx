@@ -18,16 +18,11 @@ export const FoldersSection = () => {
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
 
   const loadFolders = async () => {
-    try {
-      const user = await auth.getCurrentUser() as UserWithOrg;
-      const organizationId = user.organizations[0].id;
-      const foldersResponse = await foldersApi.getFolders(organizationId);
-      setFolders(foldersResponse);
-    } catch (error) {
-      console.error('Error loading folders:', error);
-    } finally {
-      setLoading(false);
-    }
+    const user = await auth.getCurrentUser() as UserWithOrg;
+    const organizationId = user.organizations[0].id;
+    const foldersResponse = await foldersApi.getFolders(organizationId);
+    setFolders(foldersResponse);
+    setLoading(false);
   };
 
   useEffect(() => {
