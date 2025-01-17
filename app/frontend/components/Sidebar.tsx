@@ -92,18 +92,6 @@ export const Sidebar = ({ drawerWidth, isCollapsed, onToggleCollapse }: SidebarP
                 </Text>
               </View>
             </Pressable>
-            {/* Settings */}
-            <Pressable
-              onPress={() => router.push('/settings')}
-              className="mx-2 my-0.5 rounded-md active:bg-gray-100 hover:bg-gray-50"
-            >
-              <View className={`flex-row items-center p-2 ${isCollapsed ? 'justify-center' : ''}`}>
-                <Feather name="settings" size={14} color="#4b5563" />
-                <Text className={`ml-3 text-sm text-gray-600 select-none ${isCollapsed ? 'hidden' : ''}`} style={{ fontFamily: fontFamily.regular }}>
-                  Settings
-                </Text>
-              </View>
-            </Pressable>
             {/* Billing */}
             <Pressable
               onPress={() => router.push('/billing')}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import useApi from '../../../services/api';
+import { useApi } from '../../../services/api';
 
 export default function Register() {
   const { auth, isInitialized } = useApi();
@@ -10,33 +10,37 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
+  const [notification, setNotification] = useState<{ message: string; type: 'error' | 'success' | null }>({
+    message: '',
+    type: null,
+  });
 
   const handleRegister = async () => {
-    setErrorMessage('');
-    setSuccessMessage('');
-
     if (!name || !email || !password) {
-      setErrorMessage('Please fill in all fields');
+      setNotification({ message: 'Please fill in all fields', type: 'error' });
       return;
     }
 
     if (password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters long');
+      setNotification({ message: 'Password must be at least 8 characters long', type: 'error' });
       return;
     }
 
     try {
       setLoading(true);
+      setNotification({ message: '', type: null });
       await auth.register(email, password, name);
-      setSuccessMessage('Registration successful! Redirecting to login...');
+      setNotification({ message: 'Registration successful! Redirecting to login...', type: 'success' });
       setTimeout(() => {
         router.replace('/login');
       }, 1500);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'An error occurred during registration');
+      console.log('error', error);
+      setNotification({
+        message: error instanceof Error ? error.message : 'An error occurred during registration',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -88,13 +92,11 @@ export default function Register() {
           />
         </View>
 
-        {errorMessage ? (
-          <Text style={styles.errorMessage}>{errorMessage}</Text>
-        ) : null}
-
-        {successMessage ? (
-          <Text style={styles.successMessage}>{successMessage}</Text>
-        ) : null}
+        {notification.message && (
+          <View style={[styles.notification, notification.type === 'error' ? styles.errorNotification : styles.successNotification]}>
+            <Text style={styles.notificationText}>{notification.message}</Text>
+          </View>
+        )}
 
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]}
@@ -158,18 +160,6 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
   },
-  errorMessage: {
-    color: '#dc2626',
-    marginBottom: 10,
-    textAlign: 'center',
-    width: '100%',
-  },
-  successMessage: {
-    color: '#16a34a',
-    marginBottom: 10,
-    textAlign: 'center',
-    width: '100%',
-  },
   button: {
     backgroundColor: 'black',
     padding: 15,
@@ -191,6 +181,26 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: 'blue',
+    fontSize: 14,
+  },
+  notification: {
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    marginBottom: 10,
+  },
+  errorNotification: {
+    backgroundColor: '#ffebee',
+    borderColor: '#ef5350',
+    borderWidth: 1,
+  },
+  successNotification: {
+    backgroundColor: '#e8f5e9',
+    borderColor: '#66bb6a',
+    borderWidth: 1,
+  },
+  notificationText: {
+    textAlign: 'center',
     fontSize: 14,
   },
 }); 

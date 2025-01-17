@@ -1,14 +1,15 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { useState, useEffect } from 'react';
-import { api } from '../../../services/api';
-import type { Object3D, SceneState } from 'backend-js-api';
+import { useApi } from '../../../services/api';
+import type { Object3D, SceneState, Project } from '../../../src/backend-js-api';
 
 import { CommandTabs } from '../../../components/CommandTabs';
 import { ThreeRenderer } from '../../../components/ThreeRenderer';
 
 export default function DashboardPage() {
   const { id } = useLocalSearchParams();
+  const { api } = useApi();
   const [sceneState, setSceneState] = useState<SceneState>({
     objects: [],
     scene: {
@@ -25,11 +26,10 @@ export default function DashboardPage() {
   const loadProject = async () => {
     try {
       setError(null);
-      const response = await api.projects.getProject(id as string);
-      console.log(response);
+      const project = await api.projects.getProject(id as string);
       // Initialize scene state from project data if available
-      if (response.data.sceneState) {
-        setSceneState(response.data.sceneState);
+      if (project.sceneState) {
+        setSceneState(project.sceneState);
       }
     } catch (error) {
       console.error('Error loading project:', error);
@@ -41,14 +41,32 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
+
+      console.log(api)
       
-      const response = await api.projects.generateObjects(id as string, {
+      // Call the Gemini service to generate objects
+      const response = await api.gemini.generateObjects({
+        instructions,
         currentObjects: sceneState.objects,
         sceneRotation: sceneState.scene?.rotation,
-        instructions,
       });
 
-      setSceneState(response.data);
+      // Update the scene state with the generated objects
+      const newSceneState: SceneState = {
+        objects: response.json.objects,
+        scene: {
+          rotation: response.json.scene.rotation,
+        },
+        reasoning: response.reasoning,
+      };
+      
+      setSceneState(newSceneState);
+
+      // Save the updated scene state to the project
+      await api.projects.updateProject(id as string, {
+        sceneState: newSceneState
+      });
+
     } catch (error) {
       console.error('Error generating objects:', error);
       setError(error instanceof Error ? error.message : 'Error generating objects');
@@ -75,7 +93,6 @@ export default function DashboardPage() {
           onGenerateObjects={handleGenerateObjects}
         />
       </View>
-
     </View>
   );
 }

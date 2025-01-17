@@ -5,8 +5,24 @@ import authRoutes from './routes/auth/index.js';
 import folderRoutes from './routes/folders/index.js';
 import projectRoutes from './routes/projects/index.js';
 import languageModelRoutes from './routes/language-models/index.js';
+import billingRoutes from './routes/billing/index.js';
 
 const app = express();
+
+// Add logging middleware before other middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Log when the request completes
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`
+    );
+  });
+  
+  next();
+});
 
 // CORS configuration
 const corsOptions = {
@@ -49,6 +65,7 @@ app.use('/auth', authRoutes);
 app.use('/folders', folderRoutes);
 app.use('/projects', projectRoutes);
 app.use('/language-models', languageModelRoutes);
+app.use('/billing', billingRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

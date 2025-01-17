@@ -1,6 +1,6 @@
 # Polyhedron
 
-A polyhedron creates a custom 3D shape defined by its vertices and faces. The shape will be centered at its position.
+A polyhedron creates a custom 3D shape defined by its vertices and faces. The shape will be centered at its position. See [index](index.md) for common properties and rules.
 
 ## Parameters
 
@@ -14,18 +14,13 @@ A polyhedron creates a custom 3D shape defined by its vertices and faces. The sh
   - Each face is an array of 3 or more indices
   - Faces must be specified in counter-clockwise order when viewed from outside
 
-## Position and Rotation
-
-- `position`: Object
-  - `x`: number - X coordinate
-  - `y`: number - Y coordinate
-  - `z`: number - Z coordinate
-  - Required
-- `rotation`: Object
-  - `x`: number - X rotation in degrees
-  - `y`: number - Y rotation in degrees
-  - `z`: number - Z rotation in degrees
-  - Required
+## Additional Rules
+- Points are specified relative to the center before the position is applied
+- All points must be part of at least one face
+- Faces must be planar (all points in the same plane)
+- Faces must be specified in counter-clockwise order when viewed from outside
+- The shape must be manifold (watertight)
+- Each edge should be shared by exactly two faces
 
 ## Examples
 
@@ -95,15 +90,4 @@ Creates a centered pyramid with a triangular base.
   }]
 }
 ```
-Creates a 10x10x10 box centered at position [10, 0, 10].
-
-## Notes
-- All dimensions are in millimeters
-- Points are specified relative to the center before the position is applied
-- All points must be part of at least one face
-- Faces must be planar (all points in the same plane)
-- Faces must be specified in counter-clockwise order when viewed from outside
-- The shape must be manifold (watertight)
-- Each edge should be shared by exactly two faces
-- Position coordinates can be any real number
-- The JSON must be wrapped in an `objects` array 
+Creates a 10x10x10 box centered at position [10, 0, 10]. 

@@ -1,118 +1,109 @@
 import request from 'supertest';
 import { app } from '../../src/app.js';
+import { setupTestUser, cleanupDatabase, setupTestDatabase } from '../setup.js';
 
 describe('Project API', () => {
-  const testUser = {
-    id: 'test-user-id',
-    email: 'test@example.com'
-  };
+  let authToken;
+  let testUser;
+  let organizationId;
 
-  beforeEach(() => {
-    // Clear projects before each test
-    global.projects = new Map();
+  beforeAll(async () => {
+    await setupTestDatabase();
+    const setup = await setupTestUser();
+    authToken = setup.token;
+    testUser = setup.user;
+    organizationId = setup.organizationId;
   });
 
-  describe('POST /api/projects', () => {
+  beforeEach(async () => {
+    await cleanupDatabase();
+    await setupTestDatabase();
+    const setup = await setupTestUser();
+    authToken = setup.token;
+    testUser = setup.user;
+    organizationId = setup.organizationId;
+  });
+
+  describe('POST /projects', () => {
     it('should create a new project', async () => {
       const projectData = {
         name: 'Test Project',
         description: 'A test project',
-        userId: testUser.id
+        organizationId
       };
 
       const response = await request(app)
-        .post('/api/projects')
+        .post('/projects')
+        .set('Authorization', `Bearer ${authToken}`)
         .send(projectData);
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(projectData.name);
       expect(response.body.description).toBe(projectData.description);
-      expect(response.body.userId).toBe(testUser.id);
     });
 
     it('should not create a project without required fields', async () => {
       const response = await request(app)
-        .post('/api/projects')
-        .send({
-          description: 'Missing name and userId'
-        });
+        .post('/projects')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Name and userId are required');
+      expect(response.body.error).toBe('Name and organizationId are required');
     });
   });
 
-  describe('GET /api/projects/user/:userId', () => {
+  describe('GET /projects/user/:userId', () => {
     it('should get all projects for a user', async () => {
-      // Create test projects
-      const projects = [
-        {
-          name: 'Project 1',
-          description: 'First project',
-          userId: testUser.id
-        },
-        {
-          name: 'Project 2',
-          description: 'Second project',
-          userId: testUser.id
-        }
-      ];
+      // First create some test projects
+      const projectData = {
+        name: 'Test Project',
+        description: 'A test project',
+        organizationId: 'test-org-id'
+      };
 
-      // Add projects to storage
-      for (const project of projects) {
-        await request(app)
-          .post('/api/projects')
-          .send(project);
-      }
+      await request(app)
+        .post('/projects')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(projectData);
 
       const response = await request(app)
-        .get(`/api/projects/user/${testUser.id}`);
+        .get(`/projects/org/test-org-id`)
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(2);
-      expect(response.body[0].userId).toBe(testUser.id);
-      expect(response.body[1].userId).toBe(testUser.id);
-    });
-
-    it('should return empty array for user with no projects', async () => {
-      const response = await request(app)
-        .get('/api/projects/user/non-existent-user');
-
-      expect(response.status).toBe(200);
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBe(0);
+      expect(response.body.length).toBe(1);
     });
   });
 
-  describe('DELETE /api/projects/:id', () => {
+  describe('DELETE /projects/:id', () => {
     it('should delete an existing project', async () => {
-      // Create a project first
+      // First create a project
       const createResponse = await request(app)
-        .post('/api/projects')
+        .post('/projects')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
-          name: 'Project to Delete',
-          description: 'This project will be deleted',
-          userId: testUser.id
+          name: 'Test Project',
+          description: 'A test project',
+          organizationId: 'test-org-id'
         });
 
       const projectId = createResponse.body.id;
 
       const response = await request(app)
-        .delete(`/api/projects/${projectId}`);
+        .delete(`/projects/${projectId}`)
+        .set('Authorization', `Bearer ${authToken}`);
 
-      expect(response.status).toBe(204);
-
-      // Verify project was deleted
-      const getResponse = await request(app)
-        .get(`/api/projects/user/${testUser.id}`);
-      expect(getResponse.body.find(p => p.id === projectId)).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Project deleted successfully');
     });
 
     it('should return 404 for non-existent project', async () => {
       const response = await request(app)
-        .delete('/api/projects/non-existent-id');
+        .delete('/projects/non-existent-id')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('Project not found');

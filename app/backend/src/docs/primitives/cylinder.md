@@ -1,6 +1,6 @@
 # Cylinder
 
-A cylinder creates a cylindrical object that is always centered at its position.
+A cylinder creates a cylindrical object that is always centered at its position. See [index](index.md) for common properties and rules.
 
 ## Parameters
 
@@ -9,19 +9,6 @@ A cylinder creates a cylindrical object that is always centered at its position.
   - Required
 - `height`: number
   - Height of the cylinder in millimeters
-  - Required
-
-## Position and Rotation
-
-- `position`: Object
-  - `x`: number - X coordinate
-  - `y`: number - Y coordinate
-  - `z`: number - Z coordinate
-  - Required
-- `rotation`: Object
-  - `x`: number - X rotation in degrees
-  - `y`: number - Y rotation in degrees
-  - `z`: number - Z rotation in degrees
   - Required
 
 ## Examples
@@ -72,11 +59,4 @@ Creates a cylinder with radius 10mm and height 20mm centered at origin.
   }]
 }
 ```
-Creates a cylinder with radius 8mm and height 25mm centered at position [15, 0, 10].
-
-## Notes
-- All dimensions are in millimeters
-- The cylinder is always centered at its position
-- Negative values for radius or height are not allowed
-- Position coordinates can be any real number
-- The JSON must be wrapped in an `objects` array 
+Creates a cylinder with radius 8mm and height 25mm centered at position [15, 0, 10]. 

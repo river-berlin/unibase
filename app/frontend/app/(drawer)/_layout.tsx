@@ -83,15 +83,6 @@ const DashboardLayout = () => {
           }}
         />
         <Drawer.Screen
-          name="settings/index"
-          options={{
-            drawerLabel: 'Settings',
-            drawerIcon: ({ color }) => (
-              <Feather name="settings" size={14} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
           name="billing/index"
           options={{
             drawerLabel: 'Billing',

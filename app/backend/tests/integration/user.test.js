@@ -1,66 +1,60 @@
 import request from 'supertest';
 import { app } from '../../src/app.js';
+import { cleanupDatabase } from '../setup.js';
 
 describe('User API', () => {
-  beforeEach(() => {
-    // Clear users before each test
-    global.users = new Map();
+  const userData = {
+    email: 'newuser@example.com',
+    password: 'password123',
+    name: 'New User'
+  };
+
+  beforeEach(async () => {
+    await cleanupDatabase();
   });
 
-  describe('POST /api/users/register', () => {
+  describe('POST /auth/register', () => {
     it('should create a new user', async () => {
-      const userData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-
       const response = await request(app)
-        .post('/api/users/register')
+        .post('/auth/register')
         .send(userData);
 
       expect(response.status).toBe(201);
-      expect(response.body.user).toHaveProperty('id');
-      expect(response.body.user.email).toBe(userData.email);
-      expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('userId');
+      expect(response.body.message).toBe('User registered successfully');
     });
 
     it('should not create a user with existing email', async () => {
-      const userData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-
-      // Create first user
+      // First create a user
       await request(app)
-        .post('/api/users/register')
+        .post('/auth/register')
         .send(userData);
 
-      // Try to create second user with same email
+      // Try to create another user with same email
       const response = await request(app)
-        .post('/api/users/register')
+        .post('/auth/register')
         .send(userData);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe('User already exists');
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe('Email already registered');
     });
   });
 
-  describe('POST /api/users/login', () => {
-    it('should login existing user', async () => {
-      const userData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-
-      // Register user first
+  describe('POST /auth/login', () => {
+    beforeEach(async () => {
+      // Create a user before each login test
       await request(app)
-        .post('/api/users/register')
+        .post('/auth/register')
         .send(userData);
+    });
 
-      // Try to login
+    it('should login existing user', async () => {
       const response = await request(app)
-        .post('/api/users/login')
-        .send(userData);
+        .post('/auth/login')
+        .send({
+          email: userData.email,
+          password: userData.password
+        });
 
       expect(response.status).toBe(200);
       expect(response.body.user.email).toBe(userData.email);
@@ -68,19 +62,8 @@ describe('User API', () => {
     });
 
     it('should not login with wrong password', async () => {
-      const userData = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-
-      // Register user first
-      await request(app)
-        .post('/api/users/register')
-        .send(userData);
-
-      // Try to login with wrong password
       const response = await request(app)
-        .post('/api/users/login')
+        .post('/auth/login')
         .send({
           email: userData.email,
           password: 'wrongpassword'

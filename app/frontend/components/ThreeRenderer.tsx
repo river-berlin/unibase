@@ -176,11 +176,11 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
     // scene.add(axesHelper);
 
     // Add floor plane
-    const planeGeometry = new THREE.PlaneGeometry(500, 500);
+    const planeGeometry = new THREE.PlaneGeometry(50, 50);
     
     // Create a canvas for the texture
     const canvas = document.createElement('canvas');
-    const size = 200; // texture size
+    const size = 200;
     canvas.width = size;
     canvas.height = size;
     const context = canvas.getContext('2d');
@@ -223,7 +223,7 @@ export function ThreeRenderer({ projectId, objects, sceneRotation }: ThreeRender
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4); // Repeat the texture 4x4 times
+    texture.repeat.set(2, 2);
 
     const planeMaterial = new THREE.MeshPhongMaterial({
       map: texture,

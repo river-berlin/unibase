@@ -23,14 +23,33 @@
    cd voicecad
    ```
 
-2. Start the development environment:
+2. Create a `.env` file in the root directory:
+   ```env
+   # Required environment variables
+   GEMINI_API_KEY=your_gemini_api_key
+   JWT_SECRET=your_jwt_secret
+   NODE_ENV=development
+
+   # S3/MinIO configuration (defaults provided)
+   S3_ENDPOINT=http://localhost:9000
+   AWS_ACCESS_KEY_ID=minioadmin
+   AWS_SECRET_ACCESS_KEY=minioadmin
+   AWS_REGION=us-east-1
+
+   # Stripe Configuration (required for billing features)
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_MONTHLY_PRICE_ID=your_stripe_price_id
+   ```
+
+3. Start the development environment:
    ```bash
    docker-compose up
    ```
 
-3. Access the applications:
+4. Access the applications:
    - Frontend: http://localhost:19000
-   - Backend API: http://localhost:3000
+   - Backend API: http://localhost:3002
+   - MinIO Console: http://localhost:9001
 
 ## 📚 Supported Features & Roadmap
 
@@ -90,6 +109,22 @@
 - [ ] Comprehensive documentation
 - [ ] GitHub Actions workflow
 - [ ] Test coverage
+
+### Billing Implementation TODO
+- [ ] Backend Implementation
+  - [x] Add Stripe integration with test keys
+  - [x] Implement subscription endpoints
+  - [x] Add unit tests for billing functionality
+  - [ ] Verify tests pass
+- [ ] Backend JS API Implementation
+  - [ ] Add billing routes to JS API
+  - [ ] Add unit tests for billing methods
+  - [ ] Add integration tests
+  - [ ] Verify all tests pass
+- [ ] Frontend Implementation
+  - [ ] Make "Subscribe Monthly" button functional
+  - [ ] Add proper error handling
+  - [ ] Test end-to-end functionality
 
 ## 📚 Documentation
 

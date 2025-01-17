@@ -23,11 +23,6 @@ export const SidebarUserMenu = ({ isCollapsed }: SidebarUserMenuProps) => {
     // Add logout logic here
   };
 
-  const handleProfileSettings = () => {
-    setMenuVisible(false);
-    router.push('/(drawer)/settings' as any);
-  };
-
   return (
     <View className="py-2 bg-white">
       <Pressable 
@@ -62,15 +57,6 @@ export const SidebarUserMenu = ({ isCollapsed }: SidebarUserMenuProps) => {
 
       {menuVisible && !isCollapsed && (
         <View className="absolute top-full left-2 right-2 mt-1 py-1 bg-white rounded-md border border-gray-200 z-30">
-          <Pressable
-            onPress={handleProfileSettings}
-            className="flex-row items-center p-3 bg-white hover:bg-gray-50 active:bg-gray-100 border-b border-gray-100"
-          >
-            <Feather name="user" size={16} color="#4b5563" />
-            <Text className="ml-3 text-sm text-gray-700 select-none bg-white" style={{ fontFamily: fontFamily.regular }}>
-              Profile Settings
-            </Text>
-          </Pressable>
           <Pressable
             onPress={handleLogout}
             className="flex-row items-center p-3 bg-white hover:bg-gray-50 active:bg-gray-100"

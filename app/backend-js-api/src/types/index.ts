@@ -64,26 +64,32 @@ export interface ApiError {
   status: number;
 }
 
+export interface SceneRotation {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface ScenePosition {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Object3DParams {
+  size?: number;
+  radius?: number;
+  height?: number;
+  points?: number[][];
+  faces?: number[][];
+}
+
 export interface Object3D {
-  type: string;
-  params: {
-    size?: number[];
-    radius?: number;
-    height?: number;
-    points?: number[][];
-    faces?: number[][];
-  };
-  position: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  rotation: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  isHollow?: boolean;
+  type: 'cube' | 'sphere' | 'cylinder' | 'polyhedron';
+  params: Object3DParams;
+  position: ScenePosition;
+  rotation: SceneRotation;
+  isHollow: boolean;
 }
 
 export interface SceneState {

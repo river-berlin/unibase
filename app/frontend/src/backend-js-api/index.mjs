@@ -138,6 +138,35 @@ var FolderService = class extends ApiClient {
   }
 };
 
+// src/services/GeminiService.ts
+var GeminiService = class extends ApiClient {
+  constructor(baseURL) {
+    super(baseURL);
+  }
+  /**
+   * Generate 3D objects based on natural language instructions or manual JSON input
+   * @param params The generation parameters
+   * @returns Generated objects, scene information, and reasoning
+   */
+  async generateObjects(params) {
+    if (!params.instructions && !params.manualJson) {
+      throw new Error("Either instructions or manualJson must be provided");
+    }
+    try {
+      const response = await this.post(
+        "/language-models/gemini/generate-objects",
+        params
+      );
+      return response;
+    } catch (error) {
+      if (error.details) {
+        throw new Error(error.details);
+      }
+      throw error;
+    }
+  }
+};
+
 // src/index.ts
 var BackendApi = class extends ApiClient {
   constructor(baseURL) {
@@ -145,12 +174,14 @@ var BackendApi = class extends ApiClient {
     this.auth = new AuthService(baseURL);
     this.projects = new ProjectService(baseURL);
     this.folders = new FolderService(baseURL);
+    this.gemini = new GeminiService(baseURL);
   }
   setToken(token) {
     super.setToken(token);
     this.auth.setToken(token);
     this.projects.setToken(token);
     this.folders.setToken(token);
+    this.gemini.setToken(token);
   }
 };
 var index_default = BackendApi;
@@ -158,6 +189,7 @@ export {
   AuthService,
   BackendApi,
   FolderService,
+  GeminiService,
   ProjectService,
   index_default as default
 };

@@ -69,26 +69,29 @@ interface ApiError {
     error: string;
     status: number;
 }
+interface SceneRotation {
+    x: number;
+    y: number;
+    z: number;
+}
+interface ScenePosition {
+    x: number;
+    y: number;
+    z: number;
+}
+interface Object3DParams {
+    size?: number;
+    radius?: number;
+    height?: number;
+    points?: number[][];
+    faces?: number[][];
+}
 interface Object3D {
-    type: string;
-    params: {
-        size?: number[];
-        radius?: number;
-        height?: number;
-        points?: number[][];
-        faces?: number[][];
-    };
-    position: {
-        x: number;
-        y: number;
-        z: number;
-    };
-    rotation: {
-        x: number;
-        y: number;
-        z: number;
-    };
-    isHollow?: boolean;
+    type: 'cube' | 'sphere' | 'cylinder' | 'polyhedron';
+    params: Object3DParams;
+    position: ScenePosition;
+    rotation: SceneRotation;
+    isHollow: boolean;
 }
 interface SceneState {
     objects: Object3D[];
@@ -177,12 +180,40 @@ declare class FolderService extends ApiClient {
     deleteFolder(id: UUID): Promise<void>;
 }
 
+interface GenerateObjectsRequest {
+    instructions?: string;
+    currentObjects?: Object3D[];
+    sceneRotation?: SceneRotation;
+    manualJson?: {
+        objects: Object3D[];
+    };
+}
+interface GenerateObjectsResponse {
+    reasoning: string;
+    json: {
+        objects: Object3D[];
+        scene: {
+            rotation: SceneRotation;
+        };
+    };
+}
+declare class GeminiService extends ApiClient {
+    constructor(baseURL: string);
+    /**
+     * Generate 3D objects based on natural language instructions or manual JSON input
+     * @param params The generation parameters
+     * @returns Generated objects, scene information, and reasoning
+     */
+    generateObjects(params: GenerateObjectsRequest): Promise<GenerateObjectsResponse>;
+}
+
 declare class BackendApi extends ApiClient {
     auth: AuthService;
     projects: ProjectService;
     folders: FolderService;
+    gemini: GeminiService;
     constructor(baseURL: string);
     setToken(token: string): void;
 }
 
-export { type ApiError, AuthService, BackendApi, type CreateFolderData, type CreateProjectData, type Folder, type FolderContents, FolderService, type GenerateObjectsData, type LoginCredentials, type Object3D, type Organization, type OrganizationRole, type Project, ProjectService, type RegisterData, type SceneState, type UUID, type UpdateFolderData, type UpdateProjectData, type User, BackendApi as default };
+export { type ApiError, AuthService, BackendApi, type CreateFolderData, type CreateProjectData, type Folder, type FolderContents, FolderService, GeminiService, type GenerateObjectsData, type GenerateObjectsRequest, type GenerateObjectsResponse, type LoginCredentials, type Object3D, type Object3DParams, type Organization, type OrganizationRole, type Project, ProjectService, type RegisterData, type ScenePosition, type SceneRotation, type SceneState, type UUID, type UpdateFolderData, type UpdateProjectData, type User, BackendApi as default };

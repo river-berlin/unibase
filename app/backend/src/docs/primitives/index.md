@@ -16,6 +16,31 @@ Each object can be either solid or hollow:
 - Hollow objects are rendered in semi-transparent white
 - Use the `isHollow` property to control this behavior
 
+## Common Properties
+
+### Position and Rotation
+All primitives require position and rotation properties:
+
+- `position`: Object
+  - `x`: number - X coordinate
+  - `y`: number - Y coordinate
+  - `z`: number - Z coordinate
+  - Required
+- `rotation`: Object
+  - `x`: number - X rotation in degrees
+  - `y`: number - Y rotation in degrees
+  - `z`: number - Z rotation in degrees
+  - Required
+
+### Common Rules
+- All dimensions are in millimeters
+- Objects are always centered at their position
+- Negative values for sizes, radii, or heights are not allowed
+- Position coordinates can be any real number
+- The JSON must be wrapped in an `objects` array
+- Hollow objects are rendered in semi-transparent white
+- Solid objects are rendered in blue
+
 ## Scene Properties
 
 The scene itself can be rotated independently of individual objects. This is useful for viewing the model from different angles or setting up a specific orientation for the entire scene.

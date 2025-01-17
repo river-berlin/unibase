@@ -91,7 +91,7 @@ router.post(
           name: user.name
         },
         process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
+        { expiresIn: '365d' }
       );
 
       res.json({
