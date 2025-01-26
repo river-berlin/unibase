@@ -1,8 +1,6 @@
-
 import { BackendApi } from '../src/backend-js-api';
 import localforage from 'localforage';
 import { useEffect, useState } from 'react';
-import type { User } from '../src/backend-js-api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
@@ -37,19 +35,26 @@ const storage = {
 export const useApi = () => {
   const [apiClient] = useState(() => new BackendApi(API_URL));
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initPromise] = useState(() => {
+    let resolve: () => void;
+    const promise = new Promise<void>((r) => { resolve = r; });
+    return { promise, resolve: resolve! };
+  });
 
   useEffect(() => {
-    // Initialize token from storage if it exists
     const initializeToken = async () => {
       const token = await storage.getItem<string>('token');
       if (token) {
         apiClient.setToken(token);
       }
       setIsInitialized(true);
+      initPromise.resolve();
     };
 
     initializeToken();
   }, [apiClient]);
+
+  const waitForInitialization = () => initPromise.promise;
 
   const auth = {
     login: async (email: string, password: string) => {
@@ -89,26 +94,12 @@ export const useApi = () => {
     },
   };
 
-  // Admin service for admin-specific API calls
-  const admin = {
-    getUsers: async (): Promise<User[]> => {
-      return apiClient.get('/admin/users');
-    },
-
-    updateUserRole: async (userId: string, data: { isAdmin: boolean }): Promise<void> => {
-      return apiClient.patch(`/admin/users/${userId}/role`, data);
-    },
-
-    deleteUser: async (userId: string): Promise<void> => {
-      return apiClient.delete(`/admin/users/${userId}`);
-    }
-  };
 
   return {
     api: apiClient,
     auth,
-    admin,
-    isInitialized
+    isInitialized,
+    waitForInitialization
   };
 };
 

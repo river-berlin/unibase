@@ -6,10 +6,12 @@ import type { Object3D, SceneState, Project } from '../../../src/backend-js-api'
 
 import { CommandTabs } from '../../../components/CommandTabs';
 import { ThreeRenderer } from '../../../components/ThreeRenderer';
+import { storage } from '~/services/storage';
 
-export default function DashboardPage() {
+
+export default function ProjectPage() {
   const { id } = useLocalSearchParams();
-  const { api } = useApi();
+  const { api, waitForInitialization } = useApi();
   const [sceneState, setSceneState] = useState<SceneState>({
     objects: [],
     scene: {
@@ -20,7 +22,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProject();
+    const init = async () => {
+      await waitForInitialization();
+      loadProject();
+    };
+    init();
   }, [id]);
 
   const loadProject = async () => {
