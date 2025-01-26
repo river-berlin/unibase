@@ -1,61 +1,72 @@
-import jwt from 'jsonwebtoken';
-import { db } from '../database/db';
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
+// Extend Express Request to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        name: string;
+      };
+    }
+  }
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: User;
-  headers: Request['headers'] & {
-    authorization?: string;
-  };
-}
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1];
 
-export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!token) {
+    res.status(401).json({ error: 'No token provided' });
+    return;
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+    if (!process.env.JWT_SECRET) {
+      res.status(500).json({ error: 'JWT_SECRET is not configured' });
+      return;
     }
 
-    if(process.env.JWT_SECRET === undefined) {
-      throw new Error('JWT_SECRET is not set');
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
+      userId: string;
+      email: string;
+      name: string;
+    };
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
-    
-    // Get fresh user data from database
-    const user = await db
-      .selectFrom('users')
-      .select(['id', 'email', 'name', 'is_admin'])
-      .where('id', '=', decoded.userId)
-      .executeTakeFirst();
-
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
-
-    req.user = user;
+    req.user = decoded;
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ error: 'Error processing authentication' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
 
-export const isAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.user?.is_admin) {
-    return res.status(403).json({ error: 'Admin access required' });
+export const isAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
+
+  const db = req.app.locals.db;
+  const user = await db
+    .selectFrom('users')
+    .select(['is_admin'])
+    .where('id', '=', req.user.userId)
+    .executeTakeFirst();
+
+  if (!user || !user.is_admin) {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+
   next();
 }; 

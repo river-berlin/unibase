@@ -2,26 +2,13 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
 import { body, validationResult } from 'express-validator';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../../database/db';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
-
-interface Folder {
-  id: string;
-  name: string;
-  path: string;
-  parent_folder_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface CreateFolderRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   body: {
     name: string;
     organizationId: string;
@@ -43,17 +30,20 @@ router.post(
     body('name').trim().notEmpty(),
     body('organizationId').notEmpty()
   ],
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: CreateFolderRequest, res: Response): Promise<void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        res.status(400).json({ errors: errors.array() });
+        return;
       }
 
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
+      if (!req.user?.userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
+      const db = req.app.locals.db;
       const { name, organizationId, parentFolderId } = req.body;
 
       // Verify user has access to this organization
@@ -61,11 +51,12 @@ router.post(
         .selectFrom('organization_members')
         .select('user_id')
         .where('organization_id', '=', organizationId)
-        .where('user_id', '=', req.user.id)
+        .where('user_id', '=', req.user.userId)
         .executeTakeFirst();
 
       if (!hasAccess) {
-        return res.status(403).json({ error: 'No access to this organization' });
+        res.status(403).json({ error: 'No access to this organization' });
+        return;
       }
 
       // If parent folder specified, verify it exists and is in the same organization
@@ -78,7 +69,15 @@ router.post(
           .executeTakeFirst();
 
         if (!parentFolder) {
-          return res.status(404).json({ error: 'Parent folder not found' });
+          res.status(404).json({ error: 'Parent folder not found' });
+          return;
+        }
+
+        // Check folder hierarchy depth
+        const hierarchyDepth = parentFolder.path.split('/').filter(Boolean).length;
+        if (hierarchyDepth >= 4) {
+          res.status(400).json({ error: 'Maximum folder nesting depth (4) exceeded' });
+          return;
         }
       }
 

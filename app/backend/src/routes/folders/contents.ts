@@ -1,34 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
-import { db } from '../../database/db';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: string | null;
-  created_at: string;
-  updated_at: string;
-  created_by_name: string;
-}
-
-interface Folder {
-  id: string;
-  name: string;
-  path: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface GetFolderContentsRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     folderId: string;
   };
@@ -47,22 +25,26 @@ const router = Router();
 router.get(
   '/:folderId/contents',
   authenticateToken,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: GetFolderContentsRequest, res: Response): Promise<void> => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
+      if (!req.user?.userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
+
+      const db = req.app.locals.db;
 
       // First verify user has access to this organization
       const hasAccess = await db
         .selectFrom('organization_members')
         .select('user_id')
         .where('organization_id', '=', req.query.organizationId)
-        .where('user_id', '=', req.user.id)
+        .where('user_id', '=', req.user.userId)
         .executeTakeFirst();
 
       if (!hasAccess) {
-        throw new Error('User does not have access to this organization');
+        res.status(403).json({ error: 'No access to this organization' });
+        return;
       }
 
       // Get all projects in the folder
@@ -104,9 +86,6 @@ router.get(
       });
     } catch (error) {
       console.error('Error fetching folder contents:', error);
-      if (error instanceof Error && error.message === 'User does not have access to this organization') {
-        return res.status(403).json({ error: error.message });
-      }
       res.status(500).json({ error: 'Error fetching folder contents' });
     }
   }

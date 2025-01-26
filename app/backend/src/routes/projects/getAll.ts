@@ -1,17 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
-import { db } from '../../database/db.js';
-
-interface User {
-  id: string;
-  email: string;
-}
+import { authenticateToken } from '../../middleware/auth';
+import { Database } from '../../database/types';
 
 interface ProjectWithFolder {
   id: string;
   name: string;
   description: string | null;
-  icon: string | null;
+  icon: string;
   folder_id: string | null;
   created_at: string;
   updated_at: string;
@@ -19,8 +14,12 @@ interface ProjectWithFolder {
   folder_path: string | null;
 }
 
-interface AuthenticatedRequest extends Request {
-  user: User;
+interface GetProjectsRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     organizationId: string;
   };
@@ -33,8 +32,28 @@ const router = Router();
  * 
  * @route GET /projects/org/:organizationId
  */
-router.get('/org/:organizationId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/org/:organizationId', authenticateToken, async (req: GetProjectsRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user?.userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const db = req.app.locals.db;
+
+    // Verify user has access to this organization
+    const hasAccess = await db
+      .selectFrom('organization_members')
+      .select('user_id')
+      .where('organization_id', '=', req.params.organizationId)
+      .where('user_id', '=', req.user.userId)
+      .executeTakeFirst();
+
+    if (!hasAccess) {
+      res.status(403).json({ error: 'No access to this organization' });
+      return;
+    }
+
     const projects = await db
       .selectFrom('projects')
       .leftJoin('folders', 'folders.id', 'projects.folder_id')

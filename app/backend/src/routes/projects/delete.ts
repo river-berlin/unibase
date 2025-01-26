@@ -1,24 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../../middleware/auth.js';
-import { db } from '../../database/db.js';
+import { authenticateToken } from '../../middleware/auth';
+import { Database } from '../../database/types';
 
-interface User {
-  id: string;
-  email: string;
-}
-
-interface Project {
-  organization_id: string;
-  created_by: string;
-}
-
-interface OrganizationMember {
-  user_id: string;
-  role: 'owner' | 'admin' | 'member';
-}
-
-interface AuthenticatedRequest extends Request {
-  user: User;
+interface DeleteProjectRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     projectId: string;
   };
@@ -27,46 +16,51 @@ interface AuthenticatedRequest extends Request {
 const router = Router();
 
 /**
- * Delete project
+ * Delete a project
  * 
  * @route DELETE /projects/:projectId
  */
-router.delete('/:projectId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:projectId', authenticateToken, async (req: DeleteProjectRequest, res: Response): Promise<void> => {
   try {
-    // First get the project to check permissions
+    if (!req.user?.userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const db = req.app.locals.db;
+
+    // Get project and verify it exists
     const project = await db
       .selectFrom('projects')
-      .select(['organization_id', 'created_by'])
+      .select(['organization_id'])
       .where('id', '=', req.params.projectId)
-      .executeTakeFirst() as Project | undefined;
+      .executeTakeFirst();
 
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      res.status(404).json({ error: 'Project not found' });
+      return;
     }
 
-    // Verify user has access to this project's organization
+    // Verify user has access to this organization
     const hasAccess = await db
       .selectFrom('organization_members')
-      .select(['user_id', 'role'])
+      .select('user_id')
       .where('organization_id', '=', project.organization_id)
-      .where('user_id', '=', req.user.id)
-      .executeTakeFirst() as OrganizationMember | undefined;
+      .where('user_id', '=', req.user.userId)
+      .executeTakeFirst();
 
     if (!hasAccess) {
-      return res.status(403).json({ error: 'No access to this project' });
+      res.status(403).json({ error: 'No access to this organization' });
+      return;
     }
 
-    // Only allow deletion if user is owner/admin or created the project
-    if (hasAccess.role !== 'owner' && hasAccess.role !== 'admin' && project.created_by !== req.user.id) {
-      return res.status(403).json({ error: 'No permission to delete this project' });
-    }
-
+    // Delete the project
     await db
       .deleteFrom('projects')
       .where('id', '=', req.params.projectId)
       .execute();
 
-    res.json({ message: 'Project deleted successfully' });
+    res.status(204).send();
   } catch (error) {
     console.error('Error deleting project:', error);
     res.status(500).json({ error: 'Error deleting project' });

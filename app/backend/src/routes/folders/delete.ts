@@ -1,25 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
-import { db } from '../../database/db';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
-
-interface Folder {
-  organization_id: string;
-}
-
-interface OrganizationMember {
-  user_id: string;
-  role: 'owner' | 'admin' | 'member';
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface DeleteFolderRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     folderId: string;
   };
@@ -35,11 +22,14 @@ const router = Router();
 router.delete(
   '/:folderId',
   authenticateToken,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: DeleteFolderRequest, res: Response): Promise<void> => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
+      if (!req.user?.userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
+
+      const db = req.app.locals.db;
 
       // First get the folder to check permissions
       const folder = await db
@@ -49,7 +39,8 @@ router.delete(
         .executeTakeFirst();
 
       if (!folder) {
-        return res.status(404).json({ error: 'Folder not found' });
+        res.status(404).json({ error: 'Folder not found' });
+        return;
       }
 
       // Verify user has access and role in this organization
@@ -57,16 +48,18 @@ router.delete(
         .selectFrom('organization_members')
         .select(['user_id', 'role'])
         .where('organization_id', '=', folder.organization_id)
-        .where('user_id', '=', req.user.id)
+        .where('user_id', '=', req.user.userId)
         .executeTakeFirst();
 
       if (!hasAccess) {
-        return res.status(403).json({ error: 'No access to this folder' });
+        res.status(403).json({ error: 'No access to this folder' });
+        return;
       }
 
       // Only allow deletion if user is owner/admin
       if (hasAccess.role !== 'owner' && hasAccess.role !== 'admin') {
-        return res.status(403).json({ error: 'No permission to delete this folder' });
+        res.status(403).json({ error: 'No permission to delete this folder' });
+        return;
       }
 
       await db

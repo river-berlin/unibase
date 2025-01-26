@@ -1,14 +1,5 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
-import { db } from '../../database/db';
-import { Database } from '../../database/types';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
 
 interface Project {
   id: string;
@@ -24,8 +15,12 @@ interface Project {
   created_by_name: string;
 }
 
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface GetProjectRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     projectId: string;
   };
@@ -38,12 +33,14 @@ const router = Router();
  * 
  * @route GET /projects/:projectId
  */
-router.get('/:projectId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:projectId', authenticateToken, async (req: GetProjectRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    if (!req.user?.userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
+    const db = req.app.locals.db;
     const project = await db
       .selectFrom('projects')
       .leftJoin('folders', 'folders.id', 'projects.folder_id')
@@ -54,7 +51,8 @@ router.get('/:projectId', authenticateToken, async (req: AuthenticatedRequest, r
       .executeTakeFirst();
 
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      res.status(404).json({ error: 'Project not found' });
+      return;
     }
 
     // Verify user has access to this project's organization
@@ -62,11 +60,12 @@ router.get('/:projectId', authenticateToken, async (req: AuthenticatedRequest, r
       .selectFrom('organization_members')
       .select('user_id')
       .where('organization_id', '=', project.organization_id)
-      .where('user_id', '=', req.user.id)
+      .where('user_id', '=', req.user.userId)
       .executeTakeFirst();
 
     if (!hasAccess) {
-      return res.status(403).json({ error: 'No access to this project' });
+      res.status(403).json({ error: 'No access to this project' });
+      return;
     }
 
     res.json(project);

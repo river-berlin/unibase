@@ -1,28 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
-import { db } from '../../database/db';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: string | null;
-  folder_id: string | null;
-  created_at: string;
-  updated_at: string;
-  folder_name: string | null;
-  folder_path: string | null;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface GetProjectsRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     organizationId: string;
   };
@@ -31,33 +15,57 @@ interface AuthenticatedRequest extends Request {
 const router = Router();
 
 /**
- * Get all projects owned by the user in an organization
+ * Get all projects in an organization
  * 
  * @route GET /folders/projects/org/:organizationId
  */
 router.get(
   '/projects/org/:organizationId',
   authenticateToken,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: GetProjectsRequest, res: Response): Promise<void> => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
+      if (!req.user?.userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const db = req.app.locals.db;
+
+      // First verify user has access to this organization
+      const hasAccess = await db
+        .selectFrom('organization_members')
+        .select('user_id')
+        .where('organization_id', '=', req.params.organizationId)
+        .where('user_id', '=', req.user.userId)
+        .executeTakeFirst();
+
+      if (!hasAccess) {
+        res.status(403).json({ error: 'No access to this organization' });
+        return;
       }
 
       const projects = await db
         .selectFrom('projects')
         .leftJoin('folders', 'folders.id', 'projects.folder_id')
-        .selectAll('projects')
-        .select(['folders.name as folder_name', 'folders.path as folder_path'])
-        .where('projects.created_by', '=', req.user.id)
+        .select([
+          'projects.id',
+          'projects.name',
+          'projects.description',
+          'projects.icon',
+          'projects.folder_id',
+          'projects.created_at',
+          'projects.updated_at',
+          'folders.name as folder_name',
+          'folders.path as folder_path'
+        ])
         .where('projects.organization_id', '=', req.params.organizationId)
         .orderBy(['folders.path', 'projects.name'])
         .execute();
 
       res.json(projects);
     } catch (error) {
-      console.error('Error fetching user projects:', error);
-      res.status(500).json({ error: 'Error fetching user projects' });
+      console.error('Error fetching projects:', error);
+      res.status(500).json({ error: 'Error fetching projects' });
     }
   }
 );

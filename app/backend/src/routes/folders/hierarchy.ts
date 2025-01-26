@@ -1,28 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
-import { db } from '../../database/db';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
-
-interface FolderHierarchy {
-  id: string;
-  name: string;
-  parent_folder_id: string | null;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
+interface GetFolderHierarchyRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    name: string;
+  };
   params: {
     folderId: string;
   };
   query: {
     organizationId: string;
   };
+}
+
+interface FolderHierarchy {
+  id: string;
+  name: string;
+  parent_folder_id: string | null;
 }
 
 const router = Router();
@@ -35,10 +31,26 @@ const router = Router();
 router.get(
   '/:folderId/hierarchy',
   authenticateToken,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: GetFolderHierarchyRequest, res: Response): Promise<void> => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'User not authenticated' });
+      if (!req.user?.userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const db = req.app.locals.db;
+
+      // First verify user has access to this organization
+      const hasAccess = await db
+        .selectFrom('organization_members')
+        .select('user_id')
+        .where('organization_id', '=', req.query.organizationId)
+        .where('user_id', '=', req.user.userId)
+        .executeTakeFirst();
+
+      if (!hasAccess) {
+        res.status(403).json({ error: 'No access to this organization' });
+        return;
       }
 
       const hierarchy: FolderHierarchy[] = [];

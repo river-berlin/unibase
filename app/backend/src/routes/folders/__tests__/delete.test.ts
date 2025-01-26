@@ -6,14 +6,13 @@ import request from 'supertest';
 import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
 import jwt from 'jsonwebtoken';
 
-describe('Delete Project Route', () => {
+describe('Delete Folder Route', () => {
   let db: TestDb;
   let app: Express;
   let testUser: { id: string; email: string; name: string; };
   let token: string;
   let organizationId: string;
   let folderId: string;
-  let projectId: string;
 
   beforeEach(async () => {
     const setup = await setupTestApp();
@@ -54,7 +53,7 @@ describe('Delete Project Route', () => {
       })
       .execute();
 
-    // Add user to organization directly in database
+    // Add user to organization directly in database as owner
     await db
       .insertInto('organization_members')
       .values({
@@ -75,25 +74,7 @@ describe('Delete Project Route', () => {
         name: 'Test Folder',
         organization_id: organizationId,
         parent_folder_id: null,
-        path: '/Test Folder',
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
-    // Create test project directly in database
-    projectId = uuidv4();
-    await db
-      .insertInto('projects')
-      .values({
-        id: projectId,
-        name: 'Test Project',
-        description: 'Test Description',
-        organization_id: organizationId,
-        folder_id: folderId,
-        icon: 'default',
-        created_by: testUser.id,
-        last_modified_by: testUser.id,
+        path: 'Test Folder',
         created_at: now,
         updated_at: now
       })
@@ -119,38 +100,79 @@ describe('Delete Project Route', () => {
     await cleanupTestDb(db);
   });
 
-  it('should delete a project successfully', async () => {
+  it('should delete a folder successfully as owner', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`)
+      .delete(`/folders/${folderId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(response.status).toBe(204);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: 'Folder deleted successfully'
+    });
 
-    // Verify project was deleted
-    const deletedProject = await db
-      .selectFrom('projects')
+    // Verify folder was actually deleted
+    const folder = await db
+      .selectFrom('folders')
       .select('id')
-      .where('id', '=', projectId)
+      .where('id', '=', folderId)
       .executeTakeFirst();
 
-    expect(deletedProject).toBeUndefined();
+    expect(folder).toBeUndefined();
   });
 
-  it('should return 404 for non-existent project', async () => {
+  it('should delete a folder successfully as admin', async () => {
+    // Change user role to admin
+    await db
+      .updateTable('organization_members')
+      .set({ role: 'admin' })
+      .where('user_id', '=', testUser.id)
+      .where('organization_id', '=', organizationId)
+      .execute();
+
+    const response = await request(app)
+      .delete(`/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      message: 'Folder deleted successfully'
+    });
+  });
+
+  it('should return 403 for regular member', async () => {
+    // Change user role to member
+    await db
+      .updateTable('organization_members')
+      .set({ role: 'member' })
+      .where('user_id', '=', testUser.id)
+      .where('organization_id', '=', organizationId)
+      .execute();
+
+    const response = await request(app)
+      .delete(`/folders/${folderId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: 'No permission to delete this folder'
+    });
+  });
+
+  it('should return 404 for non-existent folder', async () => {
     const nonExistentId = uuidv4();
     const response = await request(app)
-      .delete(`/projects/${nonExistentId}`)
+      .delete(`/folders/${nonExistentId}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
-      error: 'Project not found'
+      error: 'Folder not found'
     });
   });
 
   it('should return 401 without token', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`);
+      .delete(`/folders/${folderId}`);
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
@@ -191,12 +213,12 @@ describe('Delete Project Route', () => {
     );
 
     const response = await request(app)
-      .delete(`/projects/${projectId}`)
+      .delete(`/folders/${folderId}`)
       .set('Authorization', `Bearer ${unauthorizedToken}`);
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
-      error: 'No access to this organization'
+      error: 'No access to this folder'
     });
   });
 }); 

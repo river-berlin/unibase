@@ -6,14 +6,14 @@ import request from 'supertest';
 import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
 import jwt from 'jsonwebtoken';
 
-describe('Delete Project Route', () => {
+describe('Get All Projects Route', () => {
   let db: TestDb;
   let app: Express;
   let testUser: { id: string; email: string; name: string; };
   let token: string;
   let organizationId: string;
   let folderId: string;
-  let projectId: string;
+  let projectIds: string[];
 
   beforeEach(async () => {
     const setup = await setupTestApp();
@@ -81,23 +81,25 @@ describe('Delete Project Route', () => {
       })
       .execute();
 
-    // Create test project directly in database
-    projectId = uuidv4();
-    await db
-      .insertInto('projects')
-      .values({
-        id: projectId,
-        name: 'Test Project',
-        description: 'Test Description',
-        organization_id: organizationId,
-        folder_id: folderId,
-        icon: 'default',
-        created_by: testUser.id,
-        last_modified_by: testUser.id,
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
+    // Create multiple test projects directly in database
+    projectIds = [uuidv4(), uuidv4(), uuidv4()];
+    await Promise.all(projectIds.map((id, index) => 
+      db
+        .insertInto('projects')
+        .values({
+          id,
+          name: `Test Project ${index + 1}`,
+          description: `Test Description ${index + 1}`,
+          organization_id: organizationId,
+          folder_id: index === 0 ? null : folderId, // First project without folder
+          icon: 'default',
+          created_by: testUser.id,
+          last_modified_by: testUser.id,
+          created_at: now,
+          updated_at: now
+        })
+        .execute()
+    ));
 
     // Create JWT token
     if (!process.env.JWT_SECRET) {
@@ -119,38 +121,82 @@ describe('Delete Project Route', () => {
     await cleanupTestDb(db);
   });
 
-  it('should delete a project successfully', async () => {
+  it('should get all projects for an organization successfully', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`)
+      .get(`/projects/org/${organizationId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(response.status).toBe(204);
-
-    // Verify project was deleted
-    const deletedProject = await db
-      .selectFrom('projects')
-      .select('id')
-      .where('id', '=', projectId)
-      .executeTakeFirst();
-
-    expect(deletedProject).toBeUndefined();
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(3);
+    expect(response.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: projectIds[0],
+          name: 'Test Project 1',
+          description: 'Test Description 1',
+          folder_id: null,
+          folder_name: null,
+          folder_path: null
+        }),
+        expect.objectContaining({
+          id: projectIds[1],
+          name: 'Test Project 2',
+          description: 'Test Description 2',
+          folder_id: folderId,
+          folder_name: 'Test Folder',
+          folder_path: '/Test Folder'
+        }),
+        expect.objectContaining({
+          id: projectIds[2],
+          name: 'Test Project 3',
+          description: 'Test Description 3',
+          folder_id: folderId,
+          folder_name: 'Test Folder',
+          folder_path: '/Test Folder'
+        })
+      ])
+    );
   });
 
-  it('should return 404 for non-existent project', async () => {
-    const nonExistentId = uuidv4();
+  it('should return empty array for organization with no projects', async () => {
+    // Create another organization
+    const anotherOrgId = uuidv4();
+    const now = new Date().toISOString();
+    
+    await db
+      .insertInto('organizations')
+      .values({
+        id: anotherOrgId,
+        name: 'Another Org',
+        created_at: now,
+        updated_at: now,
+        is_default: 0
+      })
+      .execute();
+
+    // Add user to the new organization
+    await db
+      .insertInto('organization_members')
+      .values({
+        id: uuidv4(),
+        organization_id: anotherOrgId,
+        user_id: testUser.id,
+        role: 'member',
+        created_at: now
+      })
+      .execute();
+
     const response = await request(app)
-      .delete(`/projects/${nonExistentId}`)
+      .get(`/projects/org/${anotherOrgId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({
-      error: 'Project not found'
-    });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
   });
 
   it('should return 401 without token', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`);
+      .get(`/projects/org/${organizationId}`);
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
@@ -191,7 +237,7 @@ describe('Delete Project Route', () => {
     );
 
     const response = await request(app)
-      .delete(`/projects/${projectId}`)
+      .get(`/projects/org/${organizationId}`)
       .set('Authorization', `Bearer ${unauthorizedToken}`);
 
     expect(response.status).toBe(403);

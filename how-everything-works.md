@@ -10,8 +10,9 @@ Every feature in the application follows this flow:
 Every feature must include appropriate tests:
 - Backend: Unit tests for all functionality
 - Backend JS API: 
-  - Unit tests for individual components
+  - tests for individual components
   - Integration tests to verify end-to-end functionality
+  - There is a mix of unit and integration tests, it's not perfect but it's practical
   - Tests are in `__tests__` directories
 
 ### Test Directory Structure

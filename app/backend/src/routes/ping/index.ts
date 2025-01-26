@@ -1,9 +1,24 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { authenticateToken, isAdmin } from '../../middleware/auth';
 
 const router = Router();
 
-router.get('/', (_req: Request, res: Response) => {
-  res.json({ message: 'pong', timestamp: new Date().toISOString() });
+router.get('/', (req, res) => {
+  res.json({ message: 'pong' });
+});
+
+router.get('/auth', authenticateToken, (req, res) => {
+  res.json({ 
+    message: 'authenticated pong',
+    user: req.user
+  });
+});
+
+router.get('/admin', authenticateToken, isAdmin, (req, res) => {
+  res.json({ 
+    message: 'admin pong',
+    user: req.user
+  });
 });
 
 export default router; 

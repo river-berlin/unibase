@@ -21,14 +21,19 @@ export interface Database {
   organizations: {
     id: string;
     name: string;
+    description: string | null;
+    is_default: number;
     created_at: string;
+    updated_at: string;
   };
   users: {
     id: string;
     email: string;
     name: string;
     password_hash: string;
-    is_admin: boolean;
+    salt: string | null;
+    is_admin: number;
+    avatar: Buffer | null;
     last_login_at: string | null;
     created_at: string;
     updated_at: string;
@@ -36,9 +41,9 @@ export interface Database {
   folders: {
     id: string;
     name: string;
-    path: string;
     organization_id: string;
     parent_folder_id: string | null;
+    path: string;
     created_at: string;
     updated_at: string;
   };

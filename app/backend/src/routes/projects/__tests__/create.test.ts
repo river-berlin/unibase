@@ -1,128 +1,248 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { Request, Response } from 'express';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import { createTestDb, TestDb } from '../../../database/testDb';
-import createProjectRoute from '../create';
+import { TestDb } from '../../../database/testDb';
+import { Express } from 'express';
+import request from 'supertest';
+import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
+import jwt from 'jsonwebtoken';
 
 describe('Create Project Route', () => {
   let db: TestDb;
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response>;
-  let mockJson: jest.Mock;
-  let mockStatus: jest.Mock;
-  let userId: string;
-  let orgId: string;
+  let app: Express;
+  let user: { id: string; email: string; name: string; };
+  let token: string;
+  let organizationId: string;
+  let folderId: string;
 
   beforeEach(async () => {
-    // Setup in-memory database
-    db = await createTestDb();
-    
+    const setup = await setupTestApp();
+    db = setup.db;
+    app = setup.app;
+
     // Create test user
-    userId = uuidv4();
+    const now = new Date().toISOString();
+    user = {
+      id: uuidv4(),
+      email: 'user@example.com',
+      name: 'Test User'
+    };
+
     await db
       .insertInto('users')
       .values({
-        id: userId,
-        email: 'test@example.com',
-        name: 'Test User',
-        password_hash: 'dummy-hash',
-        is_admin: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        last_login_at: null
+        ...user,
+        password_hash: 'hash',
+        salt: 'salt',
+        is_admin: 0,
+        created_at: now,
+        updated_at: now,
+        last_login_at: now
       })
       .execute();
 
-    // Create test organization and membership
-    orgId = uuidv4();
+    // Create test organization
+    organizationId = uuidv4();
+    await db
+      .insertInto('organizations')
+      .values({
+        id: organizationId,
+        name: 'Test Organization',
+        created_at: now,
+        updated_at: now,
+        is_default: 1
+      })
+      .execute();
+
+    // Add user to organization
     await db
       .insertInto('organization_members')
       .values({
         id: uuidv4(),
-        organization_id: orgId,
-        user_id: userId,
-        role: 'member',
-        created_at: new Date().toISOString()
+        organization_id: organizationId,
+        user_id: user.id,
+        role: 'admin',
+        created_at: now
       })
       .execute();
 
-    // Setup request and response mocks
-    mockJson = jest.fn();
-    mockStatus = jest.fn().mockReturnValue({ json: mockJson });
-    mockReq = {
-      body: {
-        name: 'Test Project',
-        description: 'Test Description',
-        organizationId: orgId,
-        folderId: 'folder123'
+    // Create test folder
+    folderId = uuidv4();
+    await db
+      .insertInto('folders')
+      .values({
+        id: folderId,
+        name: 'Test Folder',
+        organization_id: organizationId,
+        parent_folder_id: null,
+        path: '/Test Folder',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Create token
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    token = jwt.sign(
+      { 
+        userId: user.id,
+        email: user.email,
+        name: user.name
       },
-      user: {
-        id: userId,
-        email: 'test@example.com'
-      }
-    };
-    mockRes = {
-      json: mockJson,
-      status: mockStatus
-    };
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
   });
 
   afterEach(async () => {
-    await db.destroy();
+    await cleanupTestDb(db);
   });
 
   it('should create a project successfully', async () => {
-    await createProjectRoute.handle(mockReq as Request, mockRes as Response);
+    const response = await request(app)
+      .post('/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Test Project',
+        description: 'Test Description',
+        organizationId,
+        folderId
+      });
 
-    expect(mockRes.status).toHaveBeenCalledWith(201);
-    expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
       name: 'Test Project',
       description: 'Test Description',
-      folder_id: 'folder123'
-    }));
+      folder_id: folderId,
+      icon: 'default'
+    });
+    expect(response.body).toHaveProperty('id');
+    expect(response.body).toHaveProperty('created_at');
+    expect(response.body).toHaveProperty('updated_at');
 
     // Verify project was created in database
     const project = await db
       .selectFrom('projects')
       .selectAll()
-      .where('name', '=', 'Test Project')
+      .where('id', '=', response.body.id)
       .executeTakeFirst();
 
-    expect(project).toBeDefined();
-    expect(project?.organization_id).toBe(orgId);
-    expect(project?.created_by).toBe(userId);
+    expect(project).toBeTruthy();
+    expect(project?.organization_id).toBe(organizationId);
+    expect(project?.created_by).toBe(user.id);
+    expect(project?.last_modified_by).toBe(user.id);
   });
 
-  it('should return 400 if name or organizationId is missing', async () => {
-    mockReq.body = {};
+  it('should return 400 for missing required fields', async () => {
+    const response = await request(app)
+      .post('/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({});
 
-    await createProjectRoute.handle(mockReq as Request, mockRes as Response);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'name'
+        }),
+        expect.objectContaining({
+          path: 'organizationId'
+        })
+      ])
+    );
+  });
 
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockJson).toHaveBeenCalledWith({
-      error: 'Name and organizationId are required'
+  it('should return 401 without token', async () => {
+    const response = await request(app)
+      .post('/projects')
+      .send({
+        name: 'Test Project',
+        organizationId
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'No token provided'
     });
   });
 
-  it('should return 403 if user has no access to organization', async () => {
-    mockReq.body.organizationId = uuidv4(); // Different org ID
+  it('should return 403 for unauthorized organization', async () => {
+    const unauthorizedOrgId = uuidv4();
+    const response = await request(app)
+      .post('/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Test Project',
+        organizationId: unauthorizedOrgId
+      });
 
-    await createProjectRoute.handle(mockReq as Request, mockRes as Response);
-
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(mockJson).toHaveBeenCalledWith({
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
       error: 'No access to this organization'
     });
   });
 
-  it('should return 401 if user is not authenticated', async () => {
-    mockReq.user = undefined;
+  it('should return 400 for non-existent folder', async () => {
+    const nonExistentFolderId = uuidv4();
+    const response = await request(app)
+      .post('/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Test Project',
+        organizationId,
+        folderId: nonExistentFolderId
+      });
 
-    await createProjectRoute.handle(mockReq as Request, mockRes as Response);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Folder not found'
+    });
+  });
 
-    expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockJson).toHaveBeenCalledWith({
-      error: 'User not authenticated'
+  it('should return 403 for folder from different organization', async () => {
+    // Create another organization and folder
+    const anotherOrgId = uuidv4();
+    const now = new Date().toISOString();
+    
+    await db
+      .insertInto('organizations')
+      .values({
+        id: anotherOrgId,
+        name: 'Another Org',
+        created_at: now,
+        updated_at: now,
+        is_default: 0
+      })
+      .execute();
+
+    const anotherFolderId = uuidv4();
+    await db
+      .insertInto('folders')
+      .values({
+        id: anotherFolderId,
+        name: 'Another Folder',
+        organization_id: anotherOrgId,
+        parent_folder_id: null,
+        path: '/Another Folder',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    const response = await request(app)
+      .post('/projects')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Test Project',
+        organizationId,
+        folderId: anotherFolderId
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: 'Folder does not belong to the specified organization'
     });
   });
 }); 

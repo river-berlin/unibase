@@ -6,14 +6,13 @@ import request from 'supertest';
 import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
 import jwt from 'jsonwebtoken';
 
-describe('Delete Project Route', () => {
+describe('Get All Folders Route', () => {
   let db: TestDb;
   let app: Express;
   let testUser: { id: string; email: string; name: string; };
   let token: string;
   let organizationId: string;
   let folderId: string;
-  let projectId: string;
 
   beforeEach(async () => {
     const setup = await setupTestApp();
@@ -61,7 +60,7 @@ describe('Delete Project Route', () => {
         id: uuidv4(),
         organization_id: organizationId,
         user_id: testUser.id,
-        role: 'owner',
+        role: 'member',
         created_at: now
       })
       .execute();
@@ -75,25 +74,7 @@ describe('Delete Project Route', () => {
         name: 'Test Folder',
         organization_id: organizationId,
         parent_folder_id: null,
-        path: '/Test Folder',
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
-    // Create test project directly in database
-    projectId = uuidv4();
-    await db
-      .insertInto('projects')
-      .values({
-        id: projectId,
-        name: 'Test Project',
-        description: 'Test Description',
-        organization_id: organizationId,
-        folder_id: folderId,
-        icon: 'default',
-        created_by: testUser.id,
-        last_modified_by: testUser.id,
+        path: 'Test Folder',
         created_at: now,
         updated_at: now
       })
@@ -119,84 +100,93 @@ describe('Delete Project Route', () => {
     await cleanupTestDb(db);
   });
 
-  it('should delete a project successfully', async () => {
+  it('should get all folders for an organization successfully', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`)
+      .get(`/folders/org/${organizationId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(response.status).toBe(204);
-
-    // Verify project was deleted
-    const deletedProject = await db
-      .selectFrom('projects')
-      .select('id')
-      .where('id', '=', projectId)
-      .executeTakeFirst();
-
-    expect(deletedProject).toBeUndefined();
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0]).toMatchObject({
+      id: folderId,
+      name: 'Test Folder',
+      path: 'Test Folder',
+      parent_folder_id: null
+    });
+    expect(response.body[0].created_at).toBeDefined();
+    expect(response.body[0].updated_at).toBeDefined();
   });
 
-  it('should return 404 for non-existent project', async () => {
-    const nonExistentId = uuidv4();
+  it('should return empty array for organization with no folders', async () => {
+    // Create a new organization without folders
+    const newOrgId = uuidv4();
+    const now = new Date().toISOString();
+    
+    await db
+      .insertInto('organizations')
+      .values({
+        id: newOrgId,
+        name: 'Empty Org',
+        created_at: now,
+        updated_at: now,
+        is_default: 0
+      })
+      .execute();
+
+    await db
+      .insertInto('organization_members')
+      .values({
+        id: uuidv4(),
+        organization_id: newOrgId,
+        user_id: testUser.id,
+        role: 'member',
+        created_at: now
+      })
+      .execute();
+
     const response = await request(app)
-      .delete(`/projects/${nonExistentId}`)
+      .get(`/folders/org/${newOrgId}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toHaveLength(0);
+  });
+
+  it('should return 403 for unauthorized organization', async () => {
+    // Create another organization that the user doesn't have access to
+    const unauthorizedOrgId = uuidv4();
+    const now = new Date().toISOString();
+    
+    await db
+      .insertInto('organizations')
+      .values({
+        id: unauthorizedOrgId,
+        name: 'Unauthorized Org',
+        created_at: now,
+        updated_at: now,
+        is_default: 0
+      })
+      .execute();
+
+    const response = await request(app)
+      .get(`/folders/org/${unauthorizedOrgId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
     expect(response.body).toEqual({
-      error: 'Project not found'
+      error: 'No access to this organization'
     });
   });
 
   it('should return 401 without token', async () => {
     const response = await request(app)
-      .delete(`/projects/${projectId}`);
+      .get(`/folders/org/${organizationId}`);
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
       error: 'No token provided'
-    });
-  });
-
-  it('should return 403 for unauthorized organization', async () => {
-    // Create another user without access to the organization
-    const anotherUser = {
-      id: uuidv4(),
-      email: 'another@example.com',
-      name: 'Another User'
-    };
-
-    const now = new Date().toISOString();
-    await db
-      .insertInto('users')
-      .values({
-        ...anotherUser,
-        password_hash: 'hash',
-        salt: 'salt',
-        is_admin: 0,
-        created_at: now,
-        updated_at: now,
-        last_login_at: now
-      })
-      .execute();
-
-    const unauthorizedToken = jwt.sign(
-      { 
-        userId: anotherUser.id,
-        email: anotherUser.email,
-        name: anotherUser.name
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: '1h' }
-    );
-
-    const response = await request(app)
-      .delete(`/projects/${projectId}`)
-      .set('Authorization', `Bearer ${unauthorizedToken}`);
-
-    expect(response.status).toBe(403);
-    expect(response.body).toEqual({
-      error: 'No access to this organization'
     });
   });
 }); 

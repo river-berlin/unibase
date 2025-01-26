@@ -1,69 +1,87 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { Request, Response } from 'express';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import { createTestDb, TestDb } from '../../../database/testDb';
-import getProjectRoute from '../get';
+import { TestDb } from '../../../database/testDb';
+import { Express } from 'express';
+import request from 'supertest';
+import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
+import jwt from 'jsonwebtoken';
 
 describe('Get Project Route', () => {
   let db: TestDb;
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response>;
-  let mockJson: jest.Mock;
-  let mockStatus: jest.Mock;
-  let userId: string;
-  let orgId: string;
+  let app: Express;
+  let testUser: { id: string; email: string; name: string; };
+  let token: string;
+  let organizationId: string;
+  let folderId: string;
   let projectId: string;
 
   beforeEach(async () => {
-    // Setup in-memory database
-    db = await createTestDb();
-    
-    // Create test user
-    userId = uuidv4();
+    const setup = await setupTestApp();
+    db = setup.db;
+    app = setup.app;
+
+    // Create test user directly in database
+    const now = new Date().toISOString();
+    testUser = {
+      id: uuidv4(),
+      email: 'test@example.com',
+      name: 'Test User'
+    };
+
     await db
       .insertInto('users')
       .values({
-        id: userId,
-        email: 'test@example.com',
-        name: 'Test User',
-        password_hash: 'dummy-hash',
-        is_admin: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        last_login_at: null
+        ...testUser,
+        password_hash: 'hash',
+        salt: 'salt',
+        is_admin: 0,
+        created_at: now,
+        updated_at: now,
+        last_login_at: now
       })
       .execute();
 
-    // Create test organization and membership
-    orgId = uuidv4();
+    // Create test organization directly in database
+    organizationId = uuidv4();
+    await db
+      .insertInto('organizations')
+      .values({
+        id: organizationId,
+        name: 'Test Organization',
+        created_at: now,
+        updated_at: now,
+        is_default: 1
+      })
+      .execute();
+
+    // Add user to organization directly in database
     await db
       .insertInto('organization_members')
       .values({
         id: uuidv4(),
-        organization_id: orgId,
-        user_id: userId,
-        role: 'member',
-        created_at: new Date().toISOString()
+        organization_id: organizationId,
+        user_id: testUser.id,
+        role: 'owner',
+        created_at: now
       })
       .execute();
 
-    // Create test folder
-    const folderId = uuidv4();
-    const now = new Date().toISOString();
+    // Create test folder directly in database
+    folderId = uuidv4();
     await db
       .insertInto('folders')
       .values({
         id: folderId,
         name: 'Test Folder',
-        path: '/test',
-        organization_id: orgId,
+        organization_id: organizationId,
         parent_folder_id: null,
+        path: '/Test Folder',
         created_at: now,
         updated_at: now
       })
       .execute();
 
-    // Create test project
+    // Create test project directly in database
     projectId = uuidv4();
     await db
       .insertInto('projects')
@@ -71,102 +89,118 @@ describe('Get Project Route', () => {
         id: projectId,
         name: 'Test Project',
         description: 'Test Description',
-        organization_id: orgId,
+        organization_id: organizationId,
         folder_id: folderId,
         icon: 'default',
-        created_by: userId,
-        last_modified_by: userId,
+        created_by: testUser.id,
+        last_modified_by: testUser.id,
         created_at: now,
         updated_at: now
       })
       .execute();
 
-    // Setup request and response mocks
-    mockJson = jest.fn();
-    mockStatus = jest.fn().mockReturnValue({ json: mockJson });
-    mockReq = {
-      params: {
-        projectId
+    // Create JWT token
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    token = jwt.sign(
+      { 
+        userId: testUser.id,
+        email: testUser.email,
+        name: testUser.name
       },
-      user: {
-        id: userId,
-        email: 'test@example.com'
-      }
-    };
-    mockRes = {
-      json: mockJson,
-      status: mockStatus
-    };
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
   });
 
   afterEach(async () => {
-    await db.destroy();
+    await cleanupTestDb(db);
   });
 
   it('should get a project successfully', async () => {
-    await getProjectRoute.handle(mockReq as Request, mockRes as Response);
+    const response = await request(app)
+      .get(`/projects/${projectId}`)
+      .set('Authorization', `Bearer ${token}`);
 
-    expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
       id: projectId,
       name: 'Test Project',
       description: 'Test Description',
-      organization_id: orgId,
+      organization_id: organizationId,
+      folder_id: folderId,
+      icon: 'default',
       folder_name: 'Test Folder',
-      folder_path: '/test',
+      folder_path: '/Test Folder',
       created_by_name: 'Test User'
-    }));
+    });
+    expect(response.body).toHaveProperty('created_at');
+    expect(response.body).toHaveProperty('updated_at');
   });
 
-  it('should return 404 if project not found', async () => {
-    mockReq.params.projectId = uuidv4(); // Non-existent project ID
+  it('should return 404 for non-existent project', async () => {
+    const nonExistentProjectId = uuidv4();
+    const response = await request(app)
+      .get(`/projects/${nonExistentProjectId}`)
+      .set('Authorization', `Bearer ${token}`);
 
-    await getProjectRoute.handle(mockReq as Request, mockRes as Response);
-
-    expect(mockRes.status).toHaveBeenCalledWith(404);
-    expect(mockJson).toHaveBeenCalledWith({
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
       error: 'Project not found'
     });
   });
 
-  it('should return 403 if user has no access to project organization', async () => {
-    // Create project in different organization
-    const otherOrgId = uuidv4();
-    const otherProjectId = uuidv4();
-    const now = new Date().toISOString();
-    
-    await db
-      .insertInto('projects')
-      .values({
-        id: otherProjectId,
-        name: 'Other Project',
-        description: 'Other Description',
-        organization_id: otherOrgId,
-        icon: 'default',
-        created_by: userId,
-        last_modified_by: userId,
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
+  it('should return 401 without token', async () => {
+    const response = await request(app)
+      .get(`/projects/${projectId}`);
 
-    mockReq.params.projectId = otherProjectId;
-
-    await getProjectRoute.handle(mockReq as Request, mockRes as Response);
-
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(mockJson).toHaveBeenCalledWith({
-      error: 'No access to this project'
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'No token provided'
     });
   });
 
-  it('should return 401 if user is not authenticated', async () => {
-    mockReq.user = undefined;
+  it('should return 403 for unauthorized organization', async () => {
+    // Create another user without access to the organization
+    const anotherUser = {
+      id: uuidv4(),
+      email: 'another@example.com',
+      name: 'Another User'
+    };
 
-    await getProjectRoute.handle(mockReq as Request, mockRes as Response);
+    const now = new Date().toISOString();
+    await db
+      .insertInto('users')
+      .values({
+        ...anotherUser,
+        password_hash: 'hash',
+        salt: 'salt',
+        is_admin: 0,
+        created_at: now,
+        updated_at: now,
+        last_login_at: now
+      })
+      .execute();
 
-    expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockJson).toHaveBeenCalledWith({
-      error: 'User not authenticated'
+    const unauthorizedToken = jwt.sign(
+      { 
+        userId: anotherUser.id,
+        email: anotherUser.email,
+        name: anotherUser.name
+      },
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' }
+    );
+
+    const response = await request(app)
+      .get(`/projects/${projectId}`)
+      .set('Authorization', `Bearer ${unauthorizedToken}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: 'No access to this project'
     });
   });
 }); 

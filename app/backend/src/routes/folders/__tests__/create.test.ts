@@ -6,14 +6,13 @@ import request from 'supertest';
 import { setupTestApp, cleanupTestDb } from '../../__tests__/common';
 import jwt from 'jsonwebtoken';
 
-describe('Update Project Route', () => {
+describe('Create Folder Route', () => {
   let db: TestDb;
   let app: Express;
   let testUser: { id: string; email: string; name: string; };
   let token: string;
   let organizationId: string;
-  let folderId: string;
-  let projectId: string;
+  let parentFolderId: string;
 
   beforeEach(async () => {
     const setup = await setupTestApp();
@@ -66,34 +65,16 @@ describe('Update Project Route', () => {
       })
       .execute();
 
-    // Create test folder directly in database
-    folderId = uuidv4();
+    // Create parent folder directly in database
+    parentFolderId = uuidv4();
     await db
       .insertInto('folders')
       .values({
-        id: folderId,
-        name: 'Test Folder',
+        id: parentFolderId,
+        name: 'Parent Folder',
         organization_id: organizationId,
         parent_folder_id: null,
-        path: '/Test Folder',
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
-    // Create test project directly in database
-    projectId = uuidv4();
-    await db
-      .insertInto('projects')
-      .values({
-        id: projectId,
-        name: 'Test Project',
-        description: 'Test Description',
-        organization_id: organizationId,
-        folder_id: folderId,
-        icon: 'default',
-        created_by: testUser.id,
-        last_modified_by: testUser.id,
+        path: 'Parent Folder',
         created_at: now,
         updated_at: now
       })
@@ -119,164 +100,169 @@ describe('Update Project Route', () => {
     await cleanupTestDb(db);
   });
 
-  it('should update a project successfully', async () => {
-    const updateData = {
-      name: 'Updated Project',
-      description: 'Updated Description',
-      icon: 'new-icon'
-    };
-
+  it('should create a folder successfully', async () => {
     const response = await request(app)
-      .put(`/projects/${projectId}`)
+      .post('/folders')
       .set('Authorization', `Bearer ${token}`)
-      .send(updateData);
+      .send({
+        name: 'Test Folder',
+        organizationId: organizationId
+      });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(response.body).toMatchObject({
-      id: projectId,
-      name: 'Updated Project',
-      description: 'Updated Description',
-      icon: 'new-icon',
-      folder_id: folderId,
-      folder_name: 'Test Folder',
-      folder_path: '/Test Folder'
+      name: 'Test Folder',
+      path: 'Test Folder',
+      parent_folder_id: null
     });
 
-    // Verify last_modified_by was updated
-    expect(response.body.last_modified_by).toBe(testUser.id);
+    // Verify timestamps are valid dates
+    expect(new Date(response.body.created_at)).toBeInstanceOf(Date);
     expect(new Date(response.body.updated_at)).toBeInstanceOf(Date);
   });
 
-  it('should update project folder successfully', async () => {
-    // Create another folder
-    const newFolderId = uuidv4();
-    const now = new Date().toISOString();
-    
-    await db
-      .insertInto('folders')
-      .values({
-        id: newFolderId,
-        name: 'New Folder',
-        organization_id: organizationId,
-        parent_folder_id: null,
-        path: '/New Folder',
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
+  it('should create a subfolder successfully', async () => {
     const response = await request(app)
-      .put(`/projects/${projectId}`)
+      .post('/folders')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        folder_id: newFolderId
+        name: 'Test Subfolder',
+        organizationId: organizationId,
+        parentFolderId: parentFolderId
       });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(response.body).toMatchObject({
-      id: projectId,
-      folder_id: newFolderId,
-      folder_name: 'New Folder',
-      folder_path: '/New Folder'
+      name: 'Test Subfolder',
+      path: `${parentFolderId}/Test Subfolder`,
+      parent_folder_id: parentFolderId
     });
   });
 
-  it('should return 400 for empty name', async () => {
+  it('should return 400 for missing required fields', async () => {
     const response = await request(app)
-      .put(`/projects/${projectId}`)
+      .post('/folders')
       .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: ''
-      });
+      .send({});
 
     expect(response.status).toBe(400);
-    expect(response.body.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          msg: 'Name cannot be empty'
-        })
-      ])
-    );
-  });
-
-  it('should return 400 for non-existent folder', async () => {
-    const nonExistentFolderId = uuidv4();
-    const response = await request(app)
-      .put(`/projects/${projectId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        folder_id: nonExistentFolderId
-      });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: 'Folder not found'
-    });
-  });
-
-  it('should return 403 for folder from different organization', async () => {
-    // Create folder in different organization
-    const otherOrgId = uuidv4();
-    const otherFolderId = uuidv4();
-    const now = new Date().toISOString();
-    
-    await db
-      .insertInto('organizations')
-      .values({
-        id: otherOrgId,
-        name: 'Other Org',
-        created_at: now,
-        updated_at: now,
-        is_default: 0
+    expect(response.body.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: 'name',
+        msg: 'Invalid value',
+        location: 'body'
+      }),
+      expect.objectContaining({
+        path: 'organizationId',
+        msg: 'Invalid value',
+        location: 'body'
       })
-      .execute();
-
-    await db
-      .insertInto('folders')
-      .values({
-        id: otherFolderId,
-        name: 'Other Folder',
-        organization_id: otherOrgId,
-        parent_folder_id: null,
-        path: '/Other Folder',
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
-    const response = await request(app)
-      .put(`/projects/${projectId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        folder_id: otherFolderId
-      });
-
-    expect(response.status).toBe(403);
-    expect(response.body).toEqual({
-      error: 'Folder belongs to a different organization'
-    });
+    ]));
   });
 
-  it('should return 404 for non-existent project', async () => {
+  it('should return 404 for non-existent parent folder', async () => {
     const nonExistentId = uuidv4();
     const response = await request(app)
-      .put(`/projects/${nonExistentId}`)
+      .post('/folders')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        name: 'Updated Project'
+        name: 'Test Folder',
+        organizationId: organizationId,
+        parentFolderId: nonExistentId
       });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
-      error: 'Project not found'
+      error: 'Parent folder not found'
+    });
+  });
+
+  it('should prevent creating folders beyond maximum nesting depth', async () => {
+    // Create a hierarchy of folders up to the maximum depth
+    const now = new Date().toISOString();
+    const level1Id = uuidv4();
+    const level2Id = uuidv4();
+    const level3Id = uuidv4();
+    const level4Id = uuidv4();
+
+    // Level 1
+    await db
+      .insertInto('folders')
+      .values({
+        id: level1Id,
+        name: 'Level 1',
+        organization_id: organizationId,
+        parent_folder_id: null,
+        path: 'Level 1',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Level 2
+    await db
+      .insertInto('folders')
+      .values({
+        id: level2Id,
+        name: 'Level 2',
+        organization_id: organizationId,
+        parent_folder_id: level1Id,
+        path: 'Level 1/Level 2',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Level 3
+    await db
+      .insertInto('folders')
+      .values({
+        id: level3Id,
+        name: 'Level 3',
+        organization_id: organizationId,
+        parent_folder_id: level2Id,
+        path: 'Level 1/Level 2/Level 3',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Level 4
+    await db
+      .insertInto('folders')
+      .values({
+        id: level4Id,
+        name: 'Level 4',
+        organization_id: organizationId,
+        parent_folder_id: level3Id,
+        path: 'Level 1/Level 2/Level 3/Level 4',
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Try to create a level 5 folder
+    const response = await request(app)
+      .post('/folders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Level 5',
+        organizationId: organizationId,
+        parentFolderId: level4Id
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Maximum folder nesting depth (4) exceeded'
     });
   });
 
   it('should return 401 without token', async () => {
     const response = await request(app)
-      .put(`/projects/${projectId}`)
+      .post('/folders')
       .send({
-        name: 'Updated Project'
+        name: 'Test Folder',
+        organizationId: organizationId
       });
 
     expect(response.status).toBe(401);
@@ -318,10 +304,11 @@ describe('Update Project Route', () => {
     );
 
     const response = await request(app)
-      .put(`/projects/${projectId}`)
+      .post('/folders')
       .set('Authorization', `Bearer ${unauthorizedToken}`)
       .send({
-        name: 'Updated Project'
+        name: 'Test Folder',
+        organizationId: organizationId
       });
 
     expect(response.status).toBe(403);
