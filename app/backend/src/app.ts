@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/auth/index';
 import folderRoutes from './routes/folders/index';
 import projectRoutes from './routes/projects/index';
@@ -21,6 +22,12 @@ export function createApp(db: Kysely<Database> = defaultDb): Express {
 
   // Set database instance in app locals for route handlers to access
   app.locals.db = db;
+
+  // Swagger documentation
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerFile = require('../swagger-output.json');
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
+  }
 
   // Routes
   app.use('/ping', pingRoutes);

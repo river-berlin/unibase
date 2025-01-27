@@ -33,8 +33,6 @@ describe('Delete User Route', () => {
   it('should delete user and related data successfully', async () => {
     const user = await createTestUser(db, false);
     await addUserToOrganization(db, user.id, org.id);
-
-    // Create a project owned by the user
     const projectId = await createTestProject(db, {
       organizationId: org.id,
       createdBy: user.id
@@ -65,25 +63,13 @@ describe('Delete User Route', () => {
       .executeTakeFirst();
     expect(membership).toBeUndefined();
 
-    // Verify project references were nullified
+    // Verify project was deleted
     const project = await db
       .selectFrom('projects')
-      .select(['created_by', 'last_modified_by'])
+      .select(['id'])
       .where('id', '=', projectId)
       .executeTakeFirst();
-    expect(project?.created_by).toBe('');
-    expect(project?.last_modified_by).toBe('');
-  });
-
-  it('should prevent deleting own account', async () => {
-    const response = await request(app)
-      .delete(`/admin/users/${adminUser.id}`)
-      .set('Authorization', `Bearer ${adminToken}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: 'Cannot delete your own account'
-    });
+    expect(project).toBeUndefined();
   });
 
   it('should return 404 for non-existent user', async () => {
@@ -116,5 +102,16 @@ describe('Delete User Route', () => {
       .set('Authorization', `Bearer ${regularToken}`);
 
     expect(response.status).toBe(403);
+  });
+
+  it('should prevent deleting own account', async () => {
+    const response = await request(app)
+      .delete(`/admin/users/${adminUser.id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Cannot delete your own account'
+    });
   });
 }); 

@@ -21,7 +21,8 @@
     "migrate:make": "npx kysely-ctl migrate:make",
     "migrate:list": "npx kysely-ctl migrate:list",
     "migrate:down": "npx kysely-ctl migrate:down",
-    "migrate:rollback": "npx kysely-ctl migrate:rollback"
+    "migrate:rollback": "npx kysely-ctl migrate:rollback",
+    "swagger": "ts-node src/swagger.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.511.0",
@@ -38,6 +39,8 @@
     "kysely-migration-cli": "^0.4.2",
     "multer": "^1.4.5-lts.1",
     "stripe": "^17.5.0",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1",
     "three": "^0.172.0",
     "uuid": "^11.0.4",
     "winston": "^3.11.0"
@@ -51,6 +54,7 @@
     "@types/jsonwebtoken": "^9.0.8",
     "@types/node": "^20.11.19",
     "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.7",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "jest": "^29.7.0",

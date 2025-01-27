@@ -1,8 +1,6 @@
 import { Router, Response, Request } from 'express';
-import { body, validationResult } from 'express-validator';
-import { db } from '../../../database/db';
 import { authenticateToken, isAdmin } from '../../../middleware/auth';
-import { sql } from 'kysely';
+import { body, validationResult } from 'express-validator';
 
 interface UpdateUserRoleRequest extends Request {
   params: {
@@ -32,7 +30,7 @@ router.put(
   authenticateToken,
   isAdmin,
   body('isAdmin').isBoolean(),
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: UpdateUserRoleRequest, res: Response): Promise<void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       res.status(400).json({ errors: errors.array() });
@@ -40,8 +38,9 @@ router.put(
     }
 
     const userId = req.params.userId;
-    const user = (req as UpdateUserRoleRequest).user;
-    const { isAdmin: newIsAdmin } = (req as UpdateUserRoleRequest).body;
+    const user = req.user;
+    const { isAdmin: newIsAdmin } = req.body;
+    const db = req.app.locals.db;
 
     if (!user || userId === user.userId) {
       res.status(400).json({
@@ -71,7 +70,8 @@ router.put(
           is_admin: newIsAdmin ? 1 : 0,
           updated_at: new Date().toISOString()
         })
-        .where('id', '=', userId);
+        .where('id', '=', userId)
+        .execute();
 
       res.status(200).json({ message: 'User role updated successfully' });
     } catch (error) {

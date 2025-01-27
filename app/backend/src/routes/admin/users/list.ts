@@ -1,15 +1,9 @@
 import { Router, Response } from 'express';
-import { db } from '../../../database/db';
 import { authenticateToken, isAdmin } from '../../../middleware/auth';
 import { query, validationResult } from 'express-validator';
 import { AuthenticatedRequest } from '../../../types';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_admin: boolean;
-}
+import { ExpressionBuilder } from 'kysely';
+import { Database } from '../../../database/types';
 
 interface ListUsersRequest extends AuthenticatedRequest {
   query: {
@@ -17,6 +11,15 @@ interface ListUsersRequest extends AuthenticatedRequest {
     limit?: string;
     search?: string;
   };
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+  last_login_at: string | null;
+  is_admin: number;
 }
 
 const router = Router();
@@ -47,6 +50,7 @@ router.get(
     }
 
     try {
+      const db = req.app.locals.db;
       const page = parseInt(req.query.page || '1');
       const limit = parseInt(req.query.limit || '20');
       const offset = (page - 1) * limit;
@@ -66,7 +70,7 @@ router.get(
 
       // Add search condition if search term provided
       if (search) {
-        baseQuery = baseQuery.where((eb) => eb.or([
+        baseQuery = baseQuery.where((eb: ExpressionBuilder<Database, 'users'>) => eb.or([
           eb('email', 'like', `%${search}%`),
           eb('name', 'like', `%${search}%`)
         ]));
@@ -74,7 +78,7 @@ router.get(
 
       // Get total count
       const countResult = await baseQuery
-        .select((eb) => eb.fn.countAll().as('count'))
+        .select((eb: ExpressionBuilder<Database, 'users'>) => eb.fn.countAll().as('count'))
         .executeTakeFirst();
 
       const total = Number(countResult?.count || 0);
@@ -88,7 +92,7 @@ router.get(
         .execute();
 
       // Add organization info for each user
-      const usersWithOrgs = await Promise.all(users.map(async (user) => {
+      const usersWithOrgs = await Promise.all(users.map(async (user: User) => {
         const orgs = await db
           .selectFrom('organization_members')
           .innerJoin('organizations', 'organizations.id', 'organization_members.organization_id')

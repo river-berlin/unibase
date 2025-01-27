@@ -1,8 +1,6 @@
 import { TestDb } from '../../../../database/testDb';
-import { Express } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
-import { Database } from '../../../../database/types';
 
 export interface TestUser {
   id: string;
