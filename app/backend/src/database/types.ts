@@ -47,4 +47,32 @@ export interface Database {
     created_at: string;
     updated_at: string;
   };
+  conversations: {
+    id: string;
+    project_id: string;
+    model: string;
+    status: 'active' | 'archived' | 'deleted';
+    updated_at: string;
+  };
+  messages: {
+    id: string;
+    conversation_id: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    tool_calls: string | null;
+    tool_outputs: string | null;
+    input_tokens_used: number | null;
+    output_tokens_used: number | null;
+    error: string | null;
+    object_id: string | null;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+  };
+  objects: {
+    id: string;
+    object: string;
+    created_at: string;
+    updated_at: string;
+  };
 } 

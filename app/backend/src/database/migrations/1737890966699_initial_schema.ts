@@ -135,10 +135,92 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.on('projects')
 		.column('last_modified_by')
 		.execute()
+
+	// Create Conversations table
+	await db.schema
+		.createTable('conversations')
+		.addColumn('id', 'text', col => col.primaryKey())
+		.addColumn('project_id', 'text', col => 
+			col.notNull().references('projects.id').onDelete('cascade'))
+		.addColumn('model', 'text', col => col.notNull())
+		.addColumn('status', 'text', col => col.notNull())
+		.addColumn('updated_at', 'text', col => col.notNull())
+		.execute()
+
+	// Create indexes for conversations
+	await db.schema
+		.createIndex('conversations_project_id_idx')
+		.on('conversations')
+		.column('project_id')
+		.execute()
+
+	await db.schema
+		.createIndex('conversations_status_idx')
+		.on('conversations')
+		.column('status')
+		.execute()
+
+	// Create Objects table
+	await db.schema
+		.createTable('objects')
+		.addColumn('id', 'text', col => col.primaryKey())
+		.addColumn('object', 'text', col => col.notNull())
+		.addColumn('created_at', 'text', col => col.notNull())
+		.addColumn('updated_at', 'text', col => col.notNull())
+		.execute()
+
+	// Create Messages table
+	await db.schema
+		.createTable('messages')
+		.addColumn('id', 'text', col => col.primaryKey())
+		.addColumn('conversation_id', 'text', col => 
+			col.notNull().references('conversations.id').onDelete('cascade'))
+		.addColumn('role', 'text', col => col.notNull())
+		.addColumn('content', 'text', col => col.notNull())
+		.addColumn('tool_calls', 'text')
+		.addColumn('tool_outputs', 'text')
+		.addColumn('input_tokens_used', 'integer')
+		.addColumn('output_tokens_used', 'integer')
+		.addColumn('error', 'text')
+		.addColumn('object_id', 'text', col => 
+			col.references('objects.id').onDelete('set null'))
+		.addColumn('created_by', 'text', col => 
+			col.notNull().references('users.id').onDelete('cascade'))
+		.addColumn('created_at', 'text', col => col.notNull())
+		.addColumn('updated_at', 'text', col => col.notNull())
+		.execute()
+
+	// Create indexes for messages
+	await db.schema
+		.createIndex('messages_conversation_id_idx')
+		.on('messages')
+		.column('conversation_id')
+		.execute()
+
+	await db.schema
+		.createIndex('messages_role_idx')
+		.on('messages')
+		.column('role')
+		.execute()
+
+	await db.schema
+		.createIndex('messages_created_by_idx')
+		.on('messages')
+		.column('created_by')
+		.execute()
+
+	await db.schema
+		.createIndex('messages_object_id_idx')
+		.on('messages')
+		.column('object_id')
+		.execute()
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
 	// Drop tables in reverse order to handle foreign key constraints
+	await db.schema.dropTable('messages').execute()
+	await db.schema.dropTable('objects').execute()
+	await db.schema.dropTable('conversations').execute()
 	await db.schema.dropTable('projects').execute()
 	await db.schema.dropTable('folders').execute()
 	await db.schema.dropTable('organization_members').execute()

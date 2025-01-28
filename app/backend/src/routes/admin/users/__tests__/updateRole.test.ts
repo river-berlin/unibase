@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { TestDb, createTestDb, cleanupTestDb } from '../../../../database/testDb';
+import { TestDb, cleanupTestDb } from '../../../../database/testDb';
 import { Express } from 'express';
-import { createApp } from '../../../../app';
 import request from 'supertest';
 import { createTestUser, createTestOrganization, addUserToOrganization, createAuthToken, TestUser } from './common';
+import { setupTestApp } from '../../../__tests__/common';
 
 describe('Update User Role Route', () => {
   let db: TestDb;
@@ -14,8 +14,9 @@ describe('Update User Role Route', () => {
 
   beforeEach(async () => {
     // Create test database and app
-    db = await createTestDb();
-    app = createApp(db);
+    const setup = await setupTestApp();
+    app = setup.app;
+    db = setup.db;
 
     // Create admin user
     adminUser = await createTestUser(db, true);

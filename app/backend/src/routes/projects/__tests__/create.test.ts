@@ -133,6 +133,17 @@ describe('Create Project Route', () => {
     expect(project?.organization_id).toBe(organizationId);
     expect(project?.created_by).toBe(user.id);
     expect(project?.last_modified_by).toBe(user.id);
+
+    // Verify conversation was created
+    const conversation = await db
+      .selectFrom('conversations')
+      .selectAll()
+      .where('project_id', '=', response.body.id)
+      .executeTakeFirst();
+
+    expect(conversation).toBeTruthy();
+    expect(conversation?.model).toBe('gemini-2.0-flash-exp');
+    expect(conversation?.status).toBe('active');
   });
 
   it('should return 400 for missing required fields', async () => {

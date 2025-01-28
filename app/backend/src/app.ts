@@ -13,19 +13,30 @@ import { setupCors } from './middleware/cors';
 import { Kysely } from 'kysely';
 import { Database } from './database/types';
 import { db as defaultDb } from './database/db';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { defaultGemini } from './services/gemini';
 
-export function createApp(db: Kysely<Database> = defaultDb): Express {
+interface AppServices {
+  db?: Kysely<Database>;
+  gemini?: GoogleGenerativeAI;
+}
+
+export function createApp({ 
+  db = defaultDb,
+  gemini = defaultGemini 
+}: AppServices = {}): Express {
   const app = express();
 
   setupCors(app);
   app.use(express.json());
 
-  // Set database instance in app locals for route handlers to access
+  // Set instances in app locals for route handlers to access
   app.locals.db = db;
+  app.locals.gemini = gemini;
 
   // Swagger documentation
   if (process.env.NODE_ENV !== 'production') {
-    const swaggerFile = require('../swagger-output.json');
+    const swaggerFile = require('./swagger-output.json');
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
   }
 

@@ -134,6 +134,28 @@ describe('Delete Project Route', () => {
       .executeTakeFirst();
 
     expect(deletedProject).toBeUndefined();
+
+    // Verify conversations were deleted
+    const conversations = await db
+      .selectFrom('conversations')
+      .select('id')
+      .where('project_id', '=', projectId)
+      .execute();
+
+    expect(conversations).toHaveLength(0);
+
+    // Verify messages were deleted
+    const messages = await db
+      .selectFrom('messages')
+      .select('id')
+      .where('conversation_id', 'in',
+        db.selectFrom('conversations')
+          .select('id')
+          .where('project_id', '=', projectId)
+      )
+      .execute();
+
+    expect(messages).toHaveLength(0);
   });
 
   it('should return 404 for non-existent project', async () => {

@@ -5,7 +5,7 @@
   "description": "Backend service for VoiceCAD application",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/swagger-output.json dist/",
     "start": "node dist/index.js",
     "dev": "nodemon",
     "dev:debug": "nodemon --inspect",
@@ -22,7 +22,8 @@
     "migrate:list": "npx kysely-ctl migrate:list",
     "migrate:down": "npx kysely-ctl migrate:down",
     "migrate:rollback": "npx kysely-ctl migrate:rollback",
-    "swagger": "ts-node src/swagger.ts"
+    "swagger": "ts-node src/swagger.ts",
+    "generate-api-client": "npx @hey-api/openapi-ts --input src/swagger-output.json --output ./client --name UnibaseApi --client @hey-api/client-fetch"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.511.0",
@@ -46,6 +47,8 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@hey-api/client-fetch": "^0.7.2",
+    "@hey-api/openapi-ts": "^0.63.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.12",
     "@types/cors": "^2.8.17",

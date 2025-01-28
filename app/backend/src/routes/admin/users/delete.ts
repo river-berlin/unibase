@@ -41,7 +41,6 @@ router.delete(
     try {
       // Log available tables
       const tables = await db.introspection.getTables();
-      console.log('Available tables before operations:', tables.map((t: { name: string }) => t.name));
 
       // Check if user exists
       const existingUser = await db

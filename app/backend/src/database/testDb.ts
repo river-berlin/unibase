@@ -4,7 +4,9 @@ import fs from 'fs';
 import path from 'path';
 import { Database } from './types';
 
-export async function createTestDb() {
+export type TestDb = Kysely<Database>;
+
+export async function createTestDb(): Promise<TestDb> {
   // Use dev.db if TEST_USE_DEV_DB is set to 'true'
   const useDevDb = process.env.TEST_USE_DEV_DB === 'true';
   const dbPath = useDevDb ? './dev.db' : ':memory:';
@@ -20,6 +22,11 @@ export async function createTestDb() {
     })
   });
 
+  await migrateToLatest(db);
+  return db;
+}
+
+async function migrateToLatest(db: TestDb) {
   // Get all migration files from the dist directory
   const migrationsDir = path.join(process.cwd(), 'dist', 'database', 'migrations');
   const migrationFiles = fs.readdirSync(migrationsDir)
@@ -31,26 +38,46 @@ export async function createTestDb() {
     const migration = require(path.join(migrationsDir, file));
     await migration.up(db);
   }
+}
 
-  return db;
+export async function dropAllTables(db: TestDb) {
+  await db.schema
+    .dropTable('messages')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('conversations')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('folders')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('projects')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('organization_members')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('organizations')
+    .ifExists()
+    .execute();
+  
+  await db.schema
+    .dropTable('users')
+    .ifExists()
+    .execute();
 }
 
 export async function cleanupTestDb(db: TestDb) {
-  // Run all down migrations
-  const migrationsDir = path.join(process.cwd(), 'dist', 'database', 'migrations');
-  const migrationFiles = fs.readdirSync(migrationsDir)
-    .filter(file => file.endsWith('.js'))
-    .sort()
-    .reverse();
-
-  // Run each migration's down function
-  for (const file of migrationFiles) {
-    const migration = require(path.join(migrationsDir, file));
-    await migration.down(db);
-  }
-
-  // Destroy the database connection
+  await dropAllTables(db);
   await db.destroy();
 }
-
-export type TestDb = Kysely<Database>; 

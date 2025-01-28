@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import { TestDb, createTestDb, cleanupTestDb } from '../../../database/testDb';
+import { TestDb, cleanupTestDb } from '../../../database/testDb';
 import { Express } from 'express';
-import { createApp } from '../../../app';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { sql } from 'kysely';
+import { setupTestApp } from '../../__tests__/common';
 
 describe('Get All Projects Route', () => {
   let db: TestDb;
@@ -17,8 +17,9 @@ describe('Get All Projects Route', () => {
 
   beforeEach(async () => {
     // Create test database
-    db = await createTestDb();
-    app = createApp(db);
+    const setup = await setupTestApp();
+    app = setup.app;
+    db = setup.db;
 
     // Create test user
     const userId = uuidv4();

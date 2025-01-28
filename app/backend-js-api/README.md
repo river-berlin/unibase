@@ -23,7 +23,6 @@ async function login() {
       email: 'user@example.com',
       password: 'password'
     });
-    console.log('Logged in:', response.user);
   } catch (error) {
     console.error('Login failed:', error);
   }

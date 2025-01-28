@@ -12,7 +12,7 @@ Stores user account information.
 | password_hash| text    | Bcrypt hashed password                         |       |
 | salt         | text    | Password salt for additional security          |       |
 | is_admin     | integer | Whether user has admin privileges (0 or 1)     | IDX   |
-| avatar_url   | blob    | JPEG image of user's avatar                    |       |
+| avatar       | blob    | JPEG image of user's avatar                    |       |
 | last_login_at| text    | Timestamp of last login                        |       |
 | created_at   | text    | Timestamp of account creation                  |       |
 | updated_at   | text    | Timestamp of last update                       |       |
@@ -72,6 +72,49 @@ Organizes projects in a hierarchical structure.
 | path            | text    | Full path of the folder                        | IDX   |
 | created_at      | text    | Timestamp of creation                          |       |
 | updated_at      | text    | Timestamp of last update                       |       |
+
+## Conversations Table
+
+Stores chat/conversation sessions.
+
+| Column          | Type    | Description                                    | Index |
+|-----------------|---------|------------------------------------------------|-------|
+| id              | text    | Primary key, UUID                              | PK    |
+| project_id      | text    | Foreign key to projects.id                     | FK,IDX|
+| model           | text    | AI model used (e.g., 'gpt-4o', 'claude-3')     |       |
+| status          | text    | Status ('active', 'archived', 'deleted')       | IDX   |
+| updated_at      | text    | Timestamp of last update                       |       |
+
+## Messages Table
+
+Links messages to conversations.
+
+| Column            | Type    | Description                                    | Index |
+|-------------------|---------|------------------------------------------------|-------|
+| id                | text    | Primary key, UUID                              | PK    |
+| conversation_id   | text    | Foreign key to conversations.id                | FK    |
+| role              | text    | Message role (user/assistant)                  |       |
+| content           | text    | Message content                                |       |
+| tool_calls        | text    | Tool calls made by assistant (JSON)           |       |
+| tool_outputs      | text    | Tool outputs from calls (JSON)                |       |
+| input_tokens_used | integer | Number of input tokens used                    |       |
+| output_tokens_used| integer | Number of output tokens used                   |       |
+| error            | text    | Error message if failed                        |       |
+| object_id        | text    | Foreign key to objects.id                      | FK    |
+| created_by       | text    | Foreign key to users.id                        | FK    |
+| created_at       | text    | Timestamp of creation                          |       |
+| updated_at       | text    | Timestamp of last update                       |       |
+
+## Objects Table
+
+Stores 3D objects in OpenSCAD format.
+
+| Column      | Type    | Description                                    | Index |
+|-------------|---------|------------------------------------------------|-------|
+| id          | text    | Primary key, UUID                              | PK    |
+| object      | text    | OpenSCAD object definition                     |       |
+| created_at  | text    | Timestamp of creation                          |       |
+| updated_at  | text    | Timestamp of last update                       |       |
 
 Legend:
 - PK: Primary Key

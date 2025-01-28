@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { TestDb, createTestDb } from '../../database/testDb';
-import { createApp } from '../../app';
+import { createTestDb, TestDb, cleanupTestDb} from '../../database/testDb';
 import { Express } from 'express';
+import { createApp } from '../../app';
+import { AppServices } from '../../types';
 
 /**
  * Creates a mock Express request object with common properties
@@ -41,22 +42,13 @@ export function createMockResponse(): {
 /**
  * Creates a test database and app instance for testing
  */
-export async function setupTestApp() {
+export async function setupTestApp(services: Partial<AppServices> = {}): Promise<{ app: Express; db: TestDb }> {
   const db = await createTestDb();
-  const app = createApp(db);
-  
-  return {
-    db,
-    app
-  };
+  const app = createApp({ db, ...services });
+  return { app, db };
 }
 
-/**
- * Cleans up test database
- */
-export async function cleanupTestDb(db: TestDb) {
-  await db.destroy();
-}
+export {cleanupTestDb}
 
 /**
  * Creates a test user and returns common test entities

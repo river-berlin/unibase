@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
 import { Database } from '../../database/types';
+import { Transaction } from 'kysely';
 
 interface DeleteProjectRequest extends Request {
   user?: {
@@ -54,11 +55,30 @@ router.delete('/:projectId', authenticateToken, async (req: DeleteProjectRequest
       return;
     }
 
-    // Delete the project
-    await db
-      .deleteFrom('projects')
-      .where('id', '=', req.params.projectId)
-      .execute();
+    // Start transaction for deletion
+    await db.transaction().execute(async (trx: Transaction<Database>) => {
+      // Delete associated messages first
+      await trx
+        .deleteFrom('messages')
+        .where('conversation_id', 'in', 
+          trx.selectFrom('conversations')
+            .select('id')
+            .where('project_id', '=', req.params.projectId)
+        )
+        .execute();
+
+      // Delete associated conversations
+      await trx
+        .deleteFrom('conversations')
+        .where('project_id', '=', req.params.projectId)
+        .execute();
+
+      // Delete the project
+      await trx
+        .deleteFrom('projects')
+        .where('id', '=', req.params.projectId)
+        .execute();
+    });
 
     res.status(204).send();
   } catch (error) {

@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { body, validationResult } from 'express-validator';
+import { Transaction } from 'kysely';
+import { Database } from '../../database/types';
 
 interface CreateProjectRequest extends Request {
   body: {
@@ -84,36 +86,52 @@ router.post('/',
       const now = new Date().toISOString();
       const projectId = uuidv4();
 
-      // Create project
-      await db
-        .insertInto('projects')
-        .values({
-          id: projectId,
-          name,
-          description: description || null,
-          organization_id: organizationId,
-          folder_id: folderId || null,
-          icon: 'default',
-          created_by: req.user!.userId,
-          last_modified_by: req.user!.userId,
-          created_at: now,
-          updated_at: now
-        })
-        .execute();
+      // Start transaction for creation
+      const project = await db.transaction().execute(async (trx: Transaction<Database>) => {
+        // Create project
+        await trx
+          .insertInto('projects')
+          .values({
+            id: projectId,
+            name,
+            description: description || null,
+            organization_id: organizationId,
+            folder_id: folderId || null,
+            icon: 'default',
+            created_by: req.user!.userId,
+            last_modified_by: req.user!.userId,
+            created_at: now,
+            updated_at: now
+          })
+          .execute();
 
-      const project = await db
-        .selectFrom('projects')
-        .select([
-          'id',
-          'name',
-          'description',
-          'folder_id',
-          'icon',
-          'created_at',
-          'updated_at'
-        ])
-        .where('id', '=', projectId)
-        .executeTakeFirst();
+        // Create default conversation for the project
+        await trx
+          .insertInto('conversations')
+          .values({
+            id: uuidv4(),
+            project_id: projectId,
+            model: 'gemini-2.0-flash-exp',
+            status: 'active',
+            updated_at: now
+          })
+          .execute();
+
+        // Return the created project
+        return await trx
+          .selectFrom('projects')
+          .select([
+            'id',
+            'name',
+            'description',
+            'folder_id',
+            'icon',
+            'created_at',
+            'updated_at'
+          ])
+          .where('id', '=', projectId)
+          .executeTakeFirst();
+      });
 
       res.status(201).json(project);
     } catch (error) {
