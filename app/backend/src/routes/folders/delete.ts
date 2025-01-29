@@ -23,6 +23,101 @@ router.delete(
   '/:folderId',
   authenticateToken,
   async (req: DeleteFolderRequest, res: Response): Promise<void> => {
+    /* #swagger.tags = ['Folders']
+       #swagger.summary = 'Delete folder'
+       #swagger.operationId = 'deleteFolderByOwnerOrAdmin'
+       #swagger.description = 'Deletes a folder if the authenticated user has owner or admin role in the organization'
+       #swagger.security = [{
+         "bearerAuth": []
+       }]
+       #swagger.parameters['folderId'] = {
+         in: 'path',
+         description: 'ID of the folder to delete',
+         required: true,
+         type: 'string',
+         format: 'uuid'
+       }
+       #swagger.responses[200] = {
+         description: 'Folder deleted successfully',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 message: {
+                   type: 'string',
+                   example: 'Folder deleted successfully'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[401] = {
+         description: 'Unauthorized - Missing or invalid token'
+       }
+       #swagger.responses[403] = {
+         description: 'Forbidden - No access or insufficient role',
+         content: {
+           'application/json': {
+             schema: {
+               oneOf: [
+                 {
+                   type: 'object',
+                   properties: {
+                     error: {
+                       type: 'string',
+                       example: 'No access to this folder'
+                     }
+                   }
+                 },
+                 {
+                   type: 'object',
+                   properties: {
+                     error: {
+                       type: 'string',
+                       example: 'No permission to delete this folder'
+                     }
+                   }
+                 }
+               ]
+             }
+           }
+         }
+       }
+       #swagger.responses[404] = {
+         description: 'Folder not found',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Folder not found'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[500] = {
+         description: 'Server error',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Error deleting folder'
+                 }
+               }
+             }
+           }
+         }
+       }
+    */
     try {
       if (!req.user?.userId) {
         res.status(401).json({ error: 'User not authenticated' });

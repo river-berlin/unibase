@@ -10,8 +10,8 @@
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
-    "copy-api": "rm -rf src/backend-js-api && mkdir -p src/backend-js-api && cp -r ../backend-js-api/dist/* src/backend-js-api/",
-    "watch-api": "nodemon --watch ../backend-js-api/dist -e js,ts,mjs --exec 'npm run copy-api'",
+    "copy-api": "rm -rf src/client && mkdir -p src/client && cp -r ../backend/client client",
+    "watch-api": "nodemon --watch ../backend/client/sdk.gen.ts -e ts --exec 'npm run copy-api'",
     "web": "npm run copy-api && (npm run watch-api & expo start --web --host lan --port ${EXPO_PORT:-8081})",
     "test": "jest"
   },

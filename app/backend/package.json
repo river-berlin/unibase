@@ -5,7 +5,7 @@
   "description": "Backend service for VoiceCAD application",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && cp src/swagger-output.json dist/",
+    "build": "tsc && cp src/swagger-output.json dist/ && npm run swagger && npm run generate-api-client",
     "start": "node dist/index.js",
     "dev": "nodemon",
     "dev:debug": "nodemon --inspect",

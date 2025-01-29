@@ -26,6 +26,150 @@ router.get(
   '/:folderId/contents',
   authenticateToken,
   async (req: GetFolderContentsRequest, res: Response): Promise<void> => {
+    /* #swagger.tags = ['Folders']
+       #swagger.summary = 'Get folder contents'
+       #swagger.operationId = 'listFolderContentsAndProjects'
+       #swagger.description = 'Retrieves all subfolders and projects within a specified folder'
+       #swagger.security = [{
+         "bearerAuth": []
+       }]
+       #swagger.parameters['folderId'] = {
+         in: 'path',
+         description: 'ID of the folder to get contents from',
+         required: true,
+         type: 'string',
+         format: 'uuid'
+       }
+       #swagger.responses[200] = {
+         description: 'Folder contents retrieved successfully',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 projects: {
+                   type: 'array',
+                   items: {
+                     type: 'object',
+                     properties: {
+                       id: {
+                         type: 'string',
+                         format: 'uuid'
+                       },
+                       name: {
+                         type: 'string'
+                       },
+                       description: {
+                         type: 'string',
+                         nullable: true
+                       },
+                       icon: {
+                         type: 'string',
+                         nullable: true
+                       },
+                       folder_id: {
+                         type: 'string',
+                         format: 'uuid'
+                       },
+                       created_at: {
+                         type: 'string',
+                         format: 'date-time'
+                       },
+                       updated_at: {
+                         type: 'string',
+                         format: 'date-time'
+                       }
+                     }
+                   }
+                 },
+                 subfolders: {
+                   type: 'array',
+                   items: {
+                     type: 'object',
+                     properties: {
+                       id: {
+                         type: 'string',
+                         format: 'uuid'
+                       },
+                       name: {
+                         type: 'string'
+                       },
+                       path: {
+                         type: 'string'
+                       },
+                       parent_folder_id: {
+                         type: 'string',
+                         format: 'uuid',
+                         nullable: true
+                       },
+                       created_at: {
+                         type: 'string',
+                         format: 'date-time'
+                       },
+                       updated_at: {
+                         type: 'string',
+                         format: 'date-time'
+                       }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[401] = {
+         description: 'Unauthorized - Missing or invalid token'
+       }
+       #swagger.responses[403] = {
+         description: 'No access to organization',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'No access to this organization'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[404] = {
+         description: 'Folder not found',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Folder not found'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[500] = {
+         description: 'Server error',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Error retrieving folder contents'
+                 }
+               }
+             }
+           }
+         }
+       }
+    */
     try {
       if (!req.user?.userId) {
         res.status(401).json({ error: 'User not authenticated' });
@@ -86,7 +230,7 @@ router.get(
       });
     } catch (error) {
       console.error('Error fetching folder contents:', error);
-      res.status(500).json({ error: 'Error fetching folder contents' });
+      res.status(500).json({ error: 'Error retrieving folder contents' });
     }
   }
 );

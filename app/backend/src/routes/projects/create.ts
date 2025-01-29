@@ -40,6 +40,155 @@ router.post('/',
     body('folderId').optional()
   ],
   async (req: CreateProjectRequest, res: Response): Promise<void> => {
+    /* #swagger.tags = ['Projects']
+       #swagger.summary = 'Create new project'
+       #swagger.operationId = 'createProjectWithConversation'
+       #swagger.description = 'Creates a new project in an organization with an optional folder, and initializes a default conversation.'
+       #swagger.security = [{
+         "bearerAuth": []
+       }]
+       #swagger.requestBody = {
+         required: true,
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               required: ['name', 'organizationId'],
+               properties: {
+                 name: {
+                   type: 'string',
+                   example: 'My New Project'
+                 },
+                 organizationId: {
+                   type: 'string',
+                   format: 'uuid',
+                   description: 'ID of the organization to create the project in'
+                 },
+                 description: {
+                   type: 'string',
+                   example: 'A detailed description of my project'
+                 },
+                 folderId: {
+                   type: 'string',
+                   format: 'uuid',
+                   description: 'Optional folder ID to place the project in'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[201] = {
+         description: 'Project created successfully',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 id: {
+                   type: 'string',
+                   format: 'uuid'
+                 },
+                 name: {
+                   type: 'string'
+                 },
+                 description: {
+                   type: 'string',
+                   nullable: true
+                 },
+                 folder_id: {
+                   type: 'string',
+                   format: 'uuid',
+                   nullable: true
+                 },
+                 icon: {
+                   type: 'string'
+                 },
+                 created_at: {
+                   type: 'string',
+                   format: 'date-time'
+                 },
+                 updated_at: {
+                   type: 'string',
+                   format: 'date-time'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[400] = {
+         description: 'Validation error or invalid folder',
+         content: {
+           'application/json': {
+             schema: {
+               oneOf: [
+                 {
+                   type: 'object',
+                   properties: {
+                     errors: {
+                       type: 'array',
+                       items: {
+                         type: 'object',
+                         properties: {
+                           msg: { type: 'string' },
+                           param: { type: 'string' },
+                           location: { type: 'string' }
+                         }
+                       }
+                     }
+                   }
+                 },
+                 {
+                   type: 'object',
+                   properties: {
+                     error: {
+                       type: 'string',
+                       example: 'Folder not found'
+                     }
+                   }
+                 }
+               ]
+             }
+           }
+         }
+       }
+       #swagger.responses[401] = {
+         description: 'Unauthorized - Missing or invalid token'
+       }
+       #swagger.responses[403] = {
+         description: 'No access to organization or folder',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'No access to this organization'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[500] = {
+         description: 'Server error',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Error creating project'
+                 }
+               }
+             }
+           }
+         }
+       }
+    */
     try {
       // Validate request
       const errors = validationResult(req);

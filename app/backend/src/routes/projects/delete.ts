@@ -22,6 +22,75 @@ const router = Router();
  * @route DELETE /projects/:projectId
  */
 router.delete('/:projectId', authenticateToken, async (req: DeleteProjectRequest, res: Response): Promise<void> => {
+  /* #swagger.tags = ['Projects']
+     #swagger.summary = 'Delete project'
+     #swagger.operationId = 'deleteProjectAndAssociatedData'
+     #swagger.description = 'Deletes a project and all its associated data (conversations, messages) in a transaction'
+     #swagger.security = [{
+       "bearerAuth": []
+     }]
+     #swagger.parameters['projectId'] = {
+       in: 'path',
+       description: 'ID of the project to delete',
+       required: true,
+       type: 'string',
+       format: 'uuid'
+     }
+     #swagger.responses[204] = {
+       description: 'Project deleted successfully'
+     }
+     #swagger.responses[401] = {
+       description: 'Unauthorized - Missing or invalid token'
+     }
+     #swagger.responses[403] = {
+       description: 'No access to project',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'No access to this organization'
+               }
+             }
+           }
+         }
+       }
+     }
+     #swagger.responses[404] = {
+       description: 'Project not found',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'Project not found'
+               }
+             }
+           }
+         }
+       }
+     }
+     #swagger.responses[500] = {
+       description: 'Server error',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'Error deleting project'
+               }
+             }
+           }
+         }
+       }
+     }
+  */
   try {
     if (!req.user?.userId) {
       res.status(401).json({ error: 'User not authenticated' });

@@ -32,6 +32,107 @@ router.get(
   '/:folderId/hierarchy',
   authenticateToken,
   async (req: GetFolderHierarchyRequest, res: Response): Promise<void> => {
+    /* #swagger.tags = ['Folders']
+       #swagger.summary = 'Get folder hierarchy'
+       #swagger.operationId = 'getFolderHierarchyPath'
+       #swagger.description = 'Retrieves the complete folder hierarchy path from root to the specified folder'
+       #swagger.security = [{
+         "bearerAuth": []
+       }]
+       #swagger.parameters['folderId'] = {
+         in: 'path',
+         description: 'ID of the folder to get hierarchy for',
+         required: true,
+         type: 'string',
+         format: 'uuid'
+       }
+       #swagger.parameters['organizationId'] = {
+         in: 'query',
+         description: 'ID of the organization the folder belongs to',
+         required: true,
+         type: 'string',
+         format: 'uuid'
+       }
+       #swagger.responses[200] = {
+         description: 'Folder hierarchy retrieved successfully',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'array',
+               items: {
+                 type: 'object',
+                 properties: {
+                   id: {
+                     type: 'string',
+                     format: 'uuid'
+                   },
+                   name: {
+                     type: 'string'
+                   },
+                   parent_folder_id: {
+                     type: 'string',
+                     format: 'uuid',
+                     nullable: true
+                   }
+                 }
+               },
+               description: 'Array of folders from root to target folder'
+             }
+           }
+         }
+       }
+       #swagger.responses[401] = {
+         description: 'Unauthorized - Missing or invalid token'
+       }
+       #swagger.responses[403] = {
+         description: 'No access to organization',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'No access to this organization'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[404] = {
+         description: 'Folder not found',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Folder not found'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[500] = {
+         description: 'Server error',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Error fetching folder hierarchy'
+                 }
+               }
+             }
+           }
+         }
+       }
+    */
     try {
       if (!req.user?.userId) {
         res.status(401).json({ error: 'User not authenticated' });

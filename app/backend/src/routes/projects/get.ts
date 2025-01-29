@@ -34,6 +34,126 @@ const router = Router();
  * @route GET /projects/:projectId
  */
 router.get('/:projectId', authenticateToken, async (req: GetProjectRequest, res: Response): Promise<void> => {
+  /* #swagger.tags = ['Projects']
+     #swagger.summary = 'Get project details'
+     #swagger.operationId = 'getProjectWithFolderInfo'
+     #swagger.description = 'Retrieves detailed project information including folder path and creator details'
+     #swagger.security = [{
+       "bearerAuth": []
+     }]
+     #swagger.parameters['projectId'] = {
+       in: 'path',
+       description: 'ID of the project to retrieve',
+       required: true,
+       type: 'string',
+       format: 'uuid'
+     }
+     #swagger.responses[200] = {
+       description: 'Project details retrieved successfully',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               id: {
+                 type: 'string',
+                 format: 'uuid'
+               },
+               name: {
+                 type: 'string'
+               },
+               description: {
+                 type: 'string',
+                 nullable: true
+               },
+               organization_id: {
+                 type: 'string',
+                 format: 'uuid'
+               },
+               folder_id: {
+                 type: 'string',
+                 format: 'uuid',
+                 nullable: true
+               },
+               icon: {
+                 type: 'string'
+               },
+               created_at: {
+                 type: 'string',
+                 format: 'date-time'
+               },
+               updated_at: {
+                 type: 'string',
+                 format: 'date-time'
+               },
+               folder_name: {
+                 type: 'string',
+                 nullable: true
+               },
+               folder_path: {
+                 type: 'string',
+                 nullable: true
+               },
+               created_by_name: {
+                 type: 'string'
+               }
+             }
+           }
+         }
+       }
+     }
+     #swagger.responses[401] = {
+       description: 'Unauthorized - Missing or invalid token'
+     }
+     #swagger.responses[403] = {
+       description: 'No access to project',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'No access to this project'
+               }
+             }
+           }
+         }
+       }
+     }
+     #swagger.responses[404] = {
+       description: 'Project not found',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'Project not found'
+               }
+             }
+           }
+         }
+       }
+     }
+     #swagger.responses[500] = {
+       description: 'Server error',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               error: {
+                 type: 'string',
+                 example: 'Error fetching project'
+               }
+             }
+           }
+         }
+       }
+     }
+  */
   try {
     if (!req.user?.userId) {
       res.status(401).json({ error: 'User not authenticated' });

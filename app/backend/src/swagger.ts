@@ -1,6 +1,7 @@
 import swaggerAutogen from 'swagger-autogen';
 
 const doc = {
+  openapi: '3.0.0',
   info: {
     title: 'Unibase API',
     description: 'API documentation for Unibase',
@@ -20,6 +21,14 @@ const doc = {
         bearerFormat: 'JWT',
       },
     },
+    schemas: {
+      Error: {
+        type: 'object',
+        properties: {
+          error: { type: 'string' }
+        }
+      }
+    }
   },
   tags: [
     {
@@ -43,9 +52,39 @@ const doc = {
       description: 'Folder management endpoints',
     },
   ],
+  definitions: {
+    AuthenticatedRequest: {
+      type: 'object',
+      properties: {
+        headers: {
+          type: 'object',
+          properties: {
+            Authorization: {
+              type: 'string',
+              description: 'Bearer token',
+              example: 'Bearer <token>'
+            }
+          }
+        }
+      }
+    }
+  }
 };
 
 const outputFile = './swagger-output.json';
-const endpointsFiles = ['./src/app.ts'];
+const endpointsFiles = [
+  './src/app.ts'
+];
 
-swaggerAutogen()(outputFile, endpointsFiles, doc); 
+const options = {
+  autoHeaders: true,
+  autoQuery: true,
+  autoBody: true,
+  openapi: '3.0.0',
+  language: 'en-US',
+  disableLogs: false,
+  autoResponse: true,
+  operationIds: true
+};
+
+swaggerAutogen(options)(outputFile, endpointsFiles, doc); 

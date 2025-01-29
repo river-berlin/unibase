@@ -10,11 +10,6 @@ interface User {
   password_hash: string;
 }
 
-interface Organization {
-  id: string;
-  name: string;
-  role: string;
-}
 
 interface LoginRequest extends Request {
   body: {
@@ -50,6 +45,141 @@ router.post(
     body('password').notEmpty()
   ],
   async (req: LoginRequest, res: Response): Promise<void> => {
+    /* #swagger.tags = ['Users']
+       #swagger.summary = 'User login'
+       #swagger.operationId = 'authenticateUserAndGetSession'
+       #swagger.description = 'Authenticates user credentials, updates last login time, and returns JWT token with user information including organizations'
+       #swagger.requestBody = {
+         required: true,
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               required: ['email', 'password'],
+               properties: {
+                 email: {
+                   type: 'string',
+                   format: 'email',
+                   example: 'user@example.com'
+                 },
+                 password: {
+                   type: 'string',
+                   format: 'password',
+                   example: 'securepassword123'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[200] = {
+         description: 'Login successful',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 token: {
+                   type: 'string',
+                   description: 'JWT token for authentication',
+                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                 },
+                 user: {
+                   type: 'object',
+                   properties: {
+                     id: {
+                       type: 'string',
+                       format: 'uuid'
+                     },
+                     email: {
+                       type: 'string',
+                       format: 'email'
+                     },
+                     name: {
+                       type: 'string'
+                     },
+                     organizations: {
+                       type: 'array',
+                       items: {
+                         type: 'object',
+                         properties: {
+                           id: {
+                             type: 'string',
+                             format: 'uuid'
+                           },
+                           name: {
+                             type: 'string'
+                           },
+                           role: {
+                             type: 'string',
+                             enum: ['owner', 'admin', 'member']
+                           }
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[400] = {
+         description: 'Invalid email format',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 errors: {
+                   type: 'array',
+                   items: {
+                     type: 'object',
+                     properties: {
+                       msg: { type: 'string' },
+                       param: { type: 'string' },
+                       location: { type: 'string' }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[401] = {
+         description: 'Invalid credentials',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Invalid credentials'
+                 }
+               }
+             }
+           }
+         }
+       }
+       #swagger.responses[500] = {
+         description: 'Server error',
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               properties: {
+                 error: {
+                   type: 'string',
+                   example: 'Error logging in'
+                 }
+               }
+             }
+           }
+         }
+       }
+    */
     try {
       // Validate request
       const errors = validationResult(req);
