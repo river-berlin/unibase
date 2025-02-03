@@ -1,8 +1,8 @@
 {
-  "watch": ["src/**/*"],
-  "ext": "js,json",
-  "ignore": ["src/**/*.test.js", "src/**/*.spec.js", "node_modules"],
-  "exec": "node src/index.js",
+  "watch": ["src"],
+  "ext": "ts,json,js",
+  "ignore": ["src/**/*.test.ts", "src/**/*.spec.ts", "node_modules", "client", "src/swagger-output.json"],
+  "exec": "(npm run build && node dist/index.js) || exit 1",
   "events": {
     "restart": "echo '\n> Server restarted\n'"
   },

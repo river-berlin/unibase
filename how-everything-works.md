@@ -10,9 +10,51 @@ Every feature in the application follows this flow:
 Every feature must include appropriate tests:
 - Backend: Unit tests for all functionality
 - Backend JS API: 
-  - Unit tests for individual components
+  - tests for individual components
   - Integration tests to verify end-to-end functionality
+  - There is a mix of unit and integration tests, it's not perfect but it's practical
   - Tests are in `__tests__` directories
+
+### Test Directory Structure
+The backend follows a consistent test structure where each route has its own test directory:
+```
+app/backend/src/routes/
+├── billing/
+│   ├── __tests__/
+│   │   ├── index.test.js      # Unit tests
+│   │   └── integration.test.js # Integration tests
+│   └── index.js
+├── folders/
+│   ├── __tests__/
+│   │   └── index.test.js
+│   └── index.js
+├── projects/
+│   ├── __tests__/
+│   │   ├── index.test.js
+│   │   └── integration.test.js
+│   └── index.js
+├── users/
+│   ├── __tests__/
+│   │   ├── index.test.js
+│   │   └── integration.test.js
+│   └── index.js
+└── ... (other routes follow same pattern)
+```
+
+This structure ensures:
+- Each route has its own test suite
+- Tests are colocated with the code they test
+- Unit tests are in `index.test.js`
+- Integration tests are in `integration.test.js`
+- Tests are easy to find through consistent naming
+- Additional test files can be added alongside if needed
+
+Global test files and mocks are in the `tests` directory:
+```
+app/backend/tests/
+├── setup.js    # Global test setup
+└── mocks/      # Shared test mocks
+```
 
 ### Folder explanations
 
@@ -70,9 +112,6 @@ docker compose run backend npm run test
 
 # Run specific tests
 docker compose run backend npm test path/to/test.js
-
-# Run tests in watch mode
-docker compose run backend npm run test:watch
 ```
 
 #### Setting Up Stripe for Testing

@@ -1,15 +1,12 @@
-export default {
+/** @type {import('jest').Config} */
+module.exports = {
   testEnvironment: 'node',
-  transform: {},
-  extensionsToTreatAsEsm: ['.ts'],
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
-  setupFilesAfterEnv: ['./jest.setup.js'],
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/src/**/__tests__/**/*.test.js'
-  ],
+  testMatch: ['**/dist/**/__tests__/**/*test.js'],
+  moduleFileExtensions: ['js', 'json', 'node'],
   verbose: true,
-  injectGlobals: true
-}; 
+  injectGlobals: true,
+  maxWorkers: '50%',
+  maxConcurrency: 5,
+  randomize: true,
+  runner: 'jest-runner'
+};

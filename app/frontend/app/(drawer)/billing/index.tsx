@@ -1,5 +1,6 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { createCheckoutSession, createPortalSession } from '../../../client/sdk.gen';
 
 const BillingHistory = [
   { id: 1, date: '2024-03-15', amount: '$9.99', period: '1 month' },
@@ -12,6 +13,28 @@ export default function BillingScreen() {
   const daysRemaining = 12; // Calculate from subscription end date
   const totalDays = 30;
   const percentageUsed = ((totalDays - daysRemaining) / totalDays) * 100;
+
+  const handleSubscribe = async () => {
+    try {
+      const response = await createCheckoutSession({});
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const response = await createPortalSession({});
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.error('Failed to create portal session:', error);
+    }
+  };
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -32,14 +55,23 @@ export default function BillingScreen() {
               $5/month
             </Text>
             
-            {/* Subscribe Button inside the box */}
-            <View className="mt-4 flex-row justify-start">
+            {/* Subscription Buttons */}
+            <View className="mt-4 flex-row gap-2">
               <Pressable 
-                className="bg-black px-2 py-1 rounded-lg"
-                onPress={() => {}}
+                className="bg-black px-4 py-2 rounded-lg"
+                onPress={handleSubscribe}
               >
-                <Text className="text-white text-center text-xs">
-                  Subscribe Monthly
+                <Text className="text-white text-center">
+                  Subscribe
+                </Text>
+              </Pressable>
+              
+              <Pressable 
+                className="bg-gray-200 px-4 py-2 rounded-lg"
+                onPress={handleManageSubscription}
+              >
+                <Text className="text-black text-center">
+                  Manage Subscription
                 </Text>
               </Pressable>
             </View>

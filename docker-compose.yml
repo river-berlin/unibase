@@ -7,9 +7,8 @@ services:
       - "8081:8081"
     volumes:
       - ./app/frontend:/app
-      - ./app/backend-js-api:/backend-js-api
+      - ./app/backend:/backend
       - /app/node_modules
-      - /backend-js-api/node_modules
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - EXPO_PUBLIC_API_URL=http://localhost:3002
@@ -35,22 +34,18 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - STRIPE_MONTHLY_PRICE_ID=${STRIPE_MONTHLY_PRICE_ID}
-    depends_on:
-      - minio
+      - FRONTEND_URL=http://localhost:8081
 
-  minio:
-    image: minio/minio:latest
+  stripe-cli:
+    image: stripe/stripe-cli
+    container_name: stripe-cli
+    command: "listen --api-key ${STRIPE_SECRET_KEY} --forward-to backend:3002/billing/webhook"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
-    restart: unless-stopped
+      - STRIPE_API_KEY=${STRIPE_SECRET_KEY}
+    depends_on:
+      - backend
 
 volumes:
   minio-data:

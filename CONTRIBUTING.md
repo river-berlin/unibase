@@ -134,14 +134,11 @@ The project is organized into several main components:
 4. Update documentation
 5. Run all tests:
    ```bash
-   # Frontend
-   cd app/frontend && npm test
-
    # Backend
-   cd ../backend && npm test
+   docker compose run backend npm run test
 
    # API Client
-   cd ../backend-js-api && npm test
+   docker compose run backend-js-api npm run test
    ```
 6. Submit PR with clear description
 

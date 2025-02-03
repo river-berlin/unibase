@@ -10,14 +10,15 @@
     "prebuild": "expo prebuild",
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
-    "copy-api": "rm -rf src/backend-js-api && mkdir -p src/backend-js-api && cp -r ../backend-js-api/dist/* src/backend-js-api/",
-    "watch-api": "nodemon --watch ../backend-js-api/dist -e js,ts,mjs --exec 'npm run copy-api'",
+    "copy-api": "rm -rf client && cp -r ../backend/client client",
+    "watch-api": "nodemon --watch ../backend/client/sdk.gen.ts -e ts --exec 'npm run copy-api'",
     "web": "npm run copy-api && (npm run watch-api & expo start --web --host lan --port ${EXPO_PORT:-8081})",
     "test": "jest"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/vector-icons": "^14.0.0",
+    "@hey-api/client-fetch": "^0.7.2",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/bottom-tabs": "^7.0.5",
     "@react-navigation/drawer": "^7.0.0",
