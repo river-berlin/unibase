@@ -25,6 +25,17 @@ export type AuthenticatedRequest = {
     };
 };
 
+export type PostBillingWebhookData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/billing/webhook';
+};
+
+export type PostBillingWebhookResponses = {
+    default: unknown;
+};
+
 export type PingData = {
     body?: never;
     path?: never;
@@ -128,7 +139,7 @@ export type AuthenticateUserAndGetSessionData = {
     };
     path?: never;
     query?: never;
-    url: '/auth/login';
+    url: '/users/login';
 };
 
 export type AuthenticateUserAndGetSessionErrors = {
@@ -196,7 +207,7 @@ export type CreateUserAccountAndWorkspaceData = {
     };
     path?: never;
     query?: never;
-    url: '/auth/register';
+    url: '/users/register';
 };
 
 export type CreateUserAccountAndWorkspaceErrors = {
@@ -240,6 +251,58 @@ export type CreateUserAccountAndWorkspaceResponses = {
 };
 
 export type CreateUserAccountAndWorkspaceResponse = CreateUserAccountAndWorkspaceResponses[keyof CreateUserAccountAndWorkspaceResponses];
+
+export type GetUserDetailsWithOrganizationsData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/users/me';
+};
+
+export type GetUserDetailsWithOrganizationsErrors = {
+    /**
+     * Unauthorized - Missing or invalid token
+     */
+    401: unknown;
+    /**
+     * User not found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        error?: string;
+    };
+};
+
+export type GetUserDetailsWithOrganizationsError = GetUserDetailsWithOrganizationsErrors[keyof GetUserDetailsWithOrganizationsErrors];
+
+export type GetUserDetailsWithOrganizationsResponses = {
+    /**
+     * User details retrieved successfully
+     */
+    200: {
+        id?: string;
+        email?: string;
+        name?: string;
+        created_at?: string;
+        updated_at?: string;
+        last_login_at?: string | null;
+        organizations?: Array<{
+            id?: string;
+            name?: string;
+            role?: 'owner' | 'admin' | 'member';
+        }>;
+    };
+};
+
+export type GetUserDetailsWithOrganizationsResponse = GetUserDetailsWithOrganizationsResponses[keyof GetUserDetailsWithOrganizationsResponses];
 
 export type ListFolderContentsAndProjectsData = {
     body?: never;
@@ -940,19 +1003,22 @@ export type ListProjectsInOrganizationResponses = {
 
 export type ListProjectsInOrganizationResponse = ListProjectsInOrganizationResponses[keyof ListProjectsInOrganizationResponses];
 
-export type GetProjectsByProjectIdScadData = {
+export type GetProjectScadData = {
     body?: never;
     headers?: {
         authorization?: string;
     };
     path: {
+        /**
+         * The ID of the project
+         */
         projectId: string;
     };
     query?: never;
     url: '/projects/{projectId}/scad';
 };
 
-export type GetProjectsByProjectIdScadErrors = {
+export type GetProjectScadErrors = {
     /**
      * Unauthorized
      */
@@ -962,6 +1028,60 @@ export type GetProjectsByProjectIdScadErrors = {
      */
     500: unknown;
 };
+
+export type GetProjectScadResponses = {
+    /**
+     * Latest SCAD object retrieved successfully
+     */
+    200: {
+        /**
+         * The SCAD object content. Empty string if no objects exist.
+         */
+        scad?: string;
+    };
+};
+
+export type GetProjectScadResponse = GetProjectScadResponses[keyof GetProjectScadResponses];
+
+export type GetProjectStlData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * The ID of the project
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/stl';
+};
+
+export type GetProjectStlErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type GetProjectStlResponses = {
+    /**
+     * Latest STL retrieved successfully
+     */
+    200: {
+        /**
+         * The STL content. Empty string if no objects exist.
+         */
+        stl?: string;
+    };
+};
+
+export type GetProjectStlResponse = GetProjectStlResponses[keyof GetProjectStlResponses];
 
 export type GetAdminUsersData = {
     body?: never;
@@ -1053,6 +1173,162 @@ export type DeleteAdminUsersByUserIdErrors = {
      * Forbidden
      */
     403: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type GenerateObjectsData = {
+    body: {
+        /**
+         * Natural language instructions for generating 3D objects
+         */
+        instructions: string;
+        /**
+         * Current rotation of the scene in radians
+         */
+        sceneRotation?: {
+            x?: number;
+            y?: number;
+            z?: number;
+        };
+        /**
+         * Optional manual JSON input to override generation
+         */
+        manualJson?: {
+            [key: string]: unknown;
+        } | null;
+    };
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * ID of the project to generate objects for
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/language-models/gemini/{projectId}/generate-objects';
+};
+
+export type GenerateObjectsErrors = {
+    /**
+     * Invalid request parameters
+     */
+    400: {
+        error?: string;
+    };
+    /**
+     * Unauthorized - Missing or invalid token
+     */
+    401: {
+        error?: string;
+    };
+    /**
+     * Forbidden - No access to project
+     */
+    403: {
+        error?: string;
+    };
+    /**
+     * Project not found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Server error
+     */
+    500: {
+        error?: string;
+        /**
+         * Additional error details if available
+         */
+        details?: string;
+    };
+};
+
+export type GenerateObjectsError = GenerateObjectsErrors[keyof GenerateObjectsErrors];
+
+export type GenerateObjectsResponses = {
+    /**
+     * Objects generated successfully
+     */
+    200: {
+        /**
+         * Generated scene description
+         */
+        json?: {
+            objects?: Array<{
+                type?: 'cube' | 'sphere' | 'cylinder' | 'polyhedron';
+                params?: {
+                    [key: string]: unknown;
+                };
+                position?: {
+                    x?: number;
+                    y?: number;
+                    z?: number;
+                };
+            }>;
+            scene?: {
+                rotation?: {
+                    x?: number;
+                    y?: number;
+                    z?: number;
+                };
+            };
+        };
+        /**
+         * Step-by-step reasoning for the generation
+         */
+        reasoning?: string;
+        /**
+         * ID of the generated message in conversation
+         */
+        messageId?: string;
+    };
+};
+
+export type GenerateObjectsResponse = GenerateObjectsResponses[keyof GenerateObjectsResponses];
+
+export type CreateCheckoutSessionData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/create-checkout-session/';
+};
+
+export type CreateCheckoutSessionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type CreatePortalSessionData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/billing/create-portal-session/';
+};
+
+export type CreatePortalSessionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
     /**
      * Internal Server Error
      */

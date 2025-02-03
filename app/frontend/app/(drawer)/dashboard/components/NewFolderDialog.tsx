@@ -1,10 +1,7 @@
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { useState } from 'react';
 import { useApi } from '../../../../services/api';
-import { useProjects } from '../../../../services/projects';
-import type { User } from '../../../../src/backend-js-api';
-
-type UserWithOrg = User & { organizations: { id: string; name: string }[] };
+import { createFolderWithHierarchy, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
 
 interface NewFolderDialogProps {
   onClose: () => void;
@@ -13,17 +10,20 @@ interface NewFolderDialogProps {
 
 export const NewFolderDialog = ({ onClose, onSuccess }: NewFolderDialogProps) => {
   const { auth } = useApi();
-  const { folders: foldersApi } = useProjects();
   const [newFolderName, setNewFolderName] = useState('');
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
 
     try {
-      const user = await auth.getCurrentUser() as UserWithOrg;
-      await foldersApi.createFolder({
-        name: newFolderName.trim(),
-        organizationId: user.organizations[0].id
+      const user = await getUserDetailsWithOrganizations();
+      if (!user?.data?.organizations?.[0]?.id) return;
+
+      await createFolderWithHierarchy({
+        body: {
+          name: newFolderName.trim(),
+          organizationId: user.data.organizations[0].id
+        }
       });
 
       setNewFolderName('');

@@ -36,7 +36,6 @@ export default function Register() {
         router.replace('/login');
       }, 1500);
     } catch (error) {
-      console.log('error', error);
       setNotification({
         message: error instanceof Error ? error.message : 'An error occurred during registration',
         type: 'error',

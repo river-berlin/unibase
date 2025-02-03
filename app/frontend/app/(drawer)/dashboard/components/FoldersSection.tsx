@@ -1,27 +1,34 @@
+import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Folder, User } from '../../../../src/backend-js-api';
 import { useApi } from '../../../../services/api';
-import { useProjects } from '../../../../services/projects';
+import { listAllFoldersInOrganization, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
 import { SectionHeader } from './SectionHeader';
 import { NewFolderDialog } from './NewFolderDialog';
+import type { ListAllFoldersInOrganizationResponses } from '../../../../client/types.gen';
 
-type UserWithOrg = User & { organizations: { id: string; name: string }[] };
+type Folder = ListAllFoldersInOrganizationResponses['200'][number];
 
 export const FoldersSection = () => {
   const { auth } = useApi();
-  const { folders: foldersApi } = useProjects();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
 
   const loadFolders = async () => {
-    const user = await auth.getCurrentUser() as UserWithOrg;
-    const organizationId = user.organizations[0].id;
-    const foldersResponse = await foldersApi.getFolders(organizationId);
-    setFolders(foldersResponse);
+    const user = await getUserDetailsWithOrganizations();
+    if (!user?.data?.organizations?.[0]?.id) return;
+    
+    const organizationId = user.data.organizations[0].id;
+    const response = await listAllFoldersInOrganization({
+      path: { organizationId }
+    });
+    
+    if (response.data) {
+      setFolders(response.data);
+    }
     setLoading(false);
   };
 
@@ -62,7 +69,7 @@ export const FoldersSection = () => {
               <View className="flex-1 py-2 px-3">
                 <Text className="font-medium text-gray-900">{folder.name}</Text>
                 <Text className="text-xs text-gray-400 mt-0.5">
-                  Modified {new Date(folder.updatedAt).toLocaleDateString()}
+                  Modified {folder.updated_at ? new Date(folder.updated_at).toLocaleDateString() : 'Never'}
                 </Text>
               </View>
             </Pressable>

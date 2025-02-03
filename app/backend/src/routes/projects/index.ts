@@ -5,7 +5,7 @@ import getSingleProject from './get';
 import updateProjectRoute from './update';
 import deleteProjectRoute from './delete';
 import getProjectScadRoute from './getProjectScad';
-//import getProjectFileRoute from './getProjectFile';
+import getProjectStlRoute from './getProjectStl';
 
 const router = Router();
 
@@ -15,8 +15,6 @@ router.use(getProjectsRoute);
 router.use(updateProjectRoute);
 router.use(deleteProjectRoute);
 router.use(getProjectScadRoute);
-
-// Attach all project routes
-//router.use('/', getProjectFileRoute);
+router.use(getProjectStlRoute);
 
 export default router; 

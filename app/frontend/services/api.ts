@@ -1,8 +1,20 @@
-import { BackendApi } from '../src/backend-js-api';
+import { authenticateUserAndGetSession, createUserAccountAndWorkspace } from '../client/sdk.gen';
+import { client } from '../client/client.gen';
 import localforage from 'localforage';
 import { useEffect, useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  organizations: Array<{
+    id: string;
+    name: string;
+    role: 'owner' | 'admin' | 'member';
+  }>;
+}
 
 // Initialize localforage only in client side
 if (typeof window !== 'undefined') {
@@ -32,8 +44,15 @@ const storage = {
   }
 };
 
+client.setConfig({
+  auth: async () => {
+    const token = await storage.getItem<string>('token');
+    return token ? `${token}` : '';
+  },
+  baseUrl: API_URL,
+});
+
 export const useApi = () => {
-  const [apiClient] = useState(() => new BackendApi(API_URL));
   const [isInitialized, setIsInitialized] = useState(false);
   const [initPromise] = useState(() => {
     let resolve: () => void;
@@ -45,47 +64,45 @@ export const useApi = () => {
     const initializeToken = async () => {
       const token = await storage.getItem<string>('token');
       if (token) {
-        apiClient.setToken(token);
+        setIsInitialized(true);
+        initPromise.resolve();
       }
-      setIsInitialized(true);
-      initPromise.resolve();
     };
 
     initializeToken();
-  }, [apiClient]);
+  }, []);
 
   const waitForInitialization = () => initPromise.promise;
 
   const auth = {
     login: async (email: string, password: string) => {
-      console.log('login', email, password);
-      const response = await apiClient.auth.login({ email, password });
-      console.log('response', response);
-      if (response.token) {
-        await storage.setItem('token', response.token);
-        await storage.setItem('user', response.user);
+      const response = await authenticateUserAndGetSession({
+        body: { email, password }
+      });
+      
+      if (response.data?.token) {
+        await storage.setItem('token', response.data.token);
       }
 
-      return response;
+      return response.data;
     },
 
     register: async (email: string, password: string, name: string) => {
-      const response = await apiClient.auth.register({ email, password, name });
-      if (response.token) {
-        await storage.setItem('token', response.token);
-        await storage.setItem('user', response.user);
+      const response = await createUserAccountAndWorkspace({
+        body: { email, password, name }
+      });
+      
+      if (response.data?.message) {
+        const token = response.request.headers.get('Authorization')?.split(' ')[1];
+        if (token) {
+          await storage.setItem('token', token);
+        }
       }
-      return response;
+      return response.data;
     },
 
     logout: async () => {
-      apiClient.auth.logout();
       await storage.removeItem('token');
-      await storage.removeItem('user');
-    },
-
-    getCurrentUser: async () => {
-      return storage.getItem('user');
     },
 
     isAuthenticated: async () => {
@@ -94,9 +111,7 @@ export const useApi = () => {
     },
   };
 
-
   return {
-    api: apiClient,
     auth,
     isInitialized,
     waitForInitialization

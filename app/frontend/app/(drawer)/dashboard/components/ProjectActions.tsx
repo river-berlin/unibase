@@ -1,10 +1,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApi } from '../../../../services/api';
-import { useProjects } from '../../../../services/projects';
-import type { User } from '../../../../src/backend-js-api';
-
-type UserWithOrg = User & { organizations: { id: string; name: string }[] };
+import { createProjectWithConversation, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
 
 interface ProjectActionsProps {
   onSuccess: () => void;
@@ -12,18 +9,21 @@ interface ProjectActionsProps {
 
 export const ProjectActions = ({ onSuccess }: ProjectActionsProps) => {
   const { auth } = useApi();
-  const { projects: projectsApi } = useProjects();
 
   const handleCreateProject = async (fileType: 'vocalcad' | 'stl') => {
     try {
-      const user = await auth.getCurrentUser() as UserWithOrg;
+      const user = await getUserDetailsWithOrganizations();
+      if (!user?.data?.organizations?.[0]?.id) return;
+
       const projectName = `New ${fileType === 'stl' ? 'STL' : 'VocalCad'} Project`;
+      const description = fileType === 'stl' ? 'Imported STL project' : 'New VocalCad project';
       
-      await projectsApi.createProject({
-        name: projectName,
-        description: 'New project description',
-        organizationId: user.organizations[0].id,
-        icon: fileType === 'stl' ? 'cube-scan' : 'cube-outline'
+      await createProjectWithConversation({
+        body: {
+          name: projectName,
+          description,
+          organizationId: user.data.organizations[0].id
+        }
       });
 
       onSuccess();

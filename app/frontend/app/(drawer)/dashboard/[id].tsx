@@ -1,103 +1,109 @@
-import { useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useApi } from '../../../services/api';
-import type { Object3D, SceneState, Project } from '../../../src/backend-js-api';
-
-import { CommandTabs } from '../../../components/CommandTabs';
+import { View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { ThreeRenderer } from '../../../components/ThreeRenderer';
-import { storage } from '~/services/storage';
+import { CommandTabs } from './components/CommandTabs';
+import { generateObjects, getProjectStl } from '../../../client/sdk.gen';
 
+interface GenerateResponse {
+  json: {
+    objects: any[];
+    scene: { rotation: { x: number; y: number; z: number } };
+  };
+  reasoning: string;
+  messageId: string;
+  stl: string;
+  scad: string;
+  errors?: string[];
+  toolCalls?: {
+    name: string;
+    args: any;
+    result?: any;
+    error?: string;
+  }[];
+}
+
+interface StlResponse {
+  stl: string;
+}
 
 export default function ProjectPage() {
   const { id } = useLocalSearchParams();
-  const { api, waitForInitialization } = useApi();
-  const [sceneState, setSceneState] = useState<SceneState>({
-    objects: [],
-    scene: {
-      rotation: { x: 0, y: 0, z: 0 },
-    },
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stlData, setStlData] = useState<string | null>(null);
+  const [reasoning, setReasoning] = useState<string | null>(null);
+  const [toolErrors, setToolErrors] = useState<string[] | null>(null);
+  const [toolCalls, setToolCalls] = useState<GenerateResponse['toolCalls']>(null);
+  const [scadData, setScadData] = useState<string | null>(null);
 
   useEffect(() => {
-    const init = async () => {
-      await waitForInitialization();
-      loadProject();
-    };
-    init();
-  }, [id]);
+    const fetchExistingStl = async () => {
+      try {
+        const response = await getProjectStl({
+          path: { projectId: id.toString() }
+        });
 
-  const loadProject = async () => {
-    try {
-      setError(null);
-      const project = await api.projects.getProject(id as string);
-      // Initialize scene state from project data if available
-      if (project.sceneState) {
-        setSceneState(project.sceneState);
+        if (response.data) {
+          const data = response.data as StlResponse;
+          if (data.stl) {
+            setStlData(data.stl);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching existing STL:', err);
       }
-    } catch (error) {
-      console.error('Error loading project:', error);
-      setError('Error loading project');
-    }
-  };
+    };
+
+    fetchExistingStl();
+  }, [id]);
 
   const handleGenerateObjects = async (instructions: string) => {
     try {
       setIsLoading(true);
       setError(null);
-
-      console.log(api)
-      
-      // Call the Gemini service to generate objects
-      const response = await api.gemini.generateObjects({
-        instructions,
-        currentObjects: sceneState.objects,
-        sceneRotation: sceneState.scene?.rotation,
+      setReasoning(null);
+      setToolErrors(null);
+      setToolCalls(null);
+      const response = await generateObjects({
+        body: { instructions },
+        path: { projectId: id.toString() }
       });
-
-      // Update the scene state with the generated objects
-      const newSceneState: SceneState = {
-        objects: response.json.objects,
-        scene: {
-          rotation: response.json.scene.rotation,
-        },
-        reasoning: response.reasoning,
-      };
-      
-      setSceneState(newSceneState);
-
-      // Save the updated scene state to the project
-      await api.projects.updateProject(id as string, {
-        sceneState: newSceneState
-      });
-
-    } catch (error) {
-      console.error('Error generating objects:', error);
-      setError(error instanceof Error ? error.message : 'Error generating objects');
+      if (response.data) {
+        const data = response.data as GenerateResponse;
+        setStlData(data.stl);
+        setScadData(data.scad);
+        setReasoning(data.reasoning);
+        if (data.errors) {
+          setToolErrors(data.errors);
+        }
+        if (data.toolCalls) {
+          setToolCalls(data.toolCalls);
+        }
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <View className="flex flex-1 flex-column">
-      <View className="flex-1 border-r border-[#e0e0e0]">
-        <View className="flex-1 p-4 bg-white">
-            <ThreeRenderer 
-              projectId={id as string}
-              objects={sceneState.objects}
-              sceneRotation={sceneState.scene?.rotation}
-            />
-        </View>
-        <CommandTabs 
-          projectId={id as string} 
-          objects={sceneState.objects}
-          isLoading={isLoading}
-          error={error}
-          onGenerateObjects={handleGenerateObjects}
-        />
+    <View className="flex-1 bg-white flex-row">
+      <CommandTabs
+        projectId={id as string}
+        isLoading={isLoading}
+        error={error}
+        toolErrors={toolErrors}
+        toolCalls={toolCalls}
+        reasoning={reasoning}
+        scadData={scadData}
+        onGenerateObjects={handleGenerateObjects}
+      />
+      <View className="flex-1">
+        <ThreeRenderer stlData={stlData} />
       </View>
     </View>
   );

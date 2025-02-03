@@ -47,6 +47,11 @@ function validateSceneObject(obj: SceneObject): void {
         throw new Error('Polyhedron must have points and faces parameters');
       }
       break;
+    case 'cuboid':
+      if (!(obj.params as any).width || !(obj.params as any).height || !(obj.params as any).depth) {
+        throw new Error('Cuboid must have width, height, and depth parameters');
+      }
+      break;
     default:
       throw new Error(`Unknown primitive type: ${obj.type}`);
   }

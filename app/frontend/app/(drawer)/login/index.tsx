@@ -27,7 +27,6 @@ export default function Login() {
       setNotification({ message: 'Login successful!', type: 'success' });
       router.replace('/(drawer)');
     } catch (error) {
-      console.log('error', error);
       setNotification({
         message: error instanceof Error ? error.message : 'An error occurred during login',
         type: 'error',

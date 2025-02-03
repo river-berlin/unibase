@@ -16,6 +16,7 @@ Stores user account information.
 | last_login_at| text    | Timestamp of last login                        |       |
 | created_at   | text    | Timestamp of account creation                  |       |
 | updated_at   | text    | Timestamp of last update                       |       |
+| stripe_customer_id | text | Stripe customer ID (nullable)               |       |
 
 ## Organizations Table
 
@@ -95,15 +96,15 @@ Links messages to conversations.
 | conversation_id   | text    | Foreign key to conversations.id                | FK    |
 | role              | text    | Message role (user/assistant)                  |       |
 | content           | text    | Message content                                |       |
-| tool_calls        | text    | Tool calls made by assistant (JSON)           |       |
-| tool_outputs      | text    | Tool outputs from calls (JSON)                |       |
+| tool_calls        | text    | Tool calls made by assistant (JSON)            |       |
+| tool_outputs      | text    | Tool outputs from calls (JSON)                 |       |
 | input_tokens_used | integer | Number of input tokens used                    |       |
 | output_tokens_used| integer | Number of output tokens used                   |       |
-| error            | text    | Error message if failed                        |       |
-| object_id        | text    | Foreign key to objects.id                      | FK    |
-| created_by       | text    | Foreign key to users.id                        | FK    |
-| created_at       | text    | Timestamp of creation                          |       |
-| updated_at       | text    | Timestamp of last update                       |       |
+| error             | text    | Error message if failed                        |       |
+| object_id         | text    | Foreign key to objects.id                      | FK    |
+| created_by        | text    | Foreign key to users.id                        | FK    |
+| created_at        | text    | Timestamp of creation                          |       |
+| updated_at        | text    | Timestamp of last update                       |       |
 
 ## Objects Table
 
@@ -115,6 +116,7 @@ Stores 3D objects in OpenSCAD format.
 | object      | text    | OpenSCAD object definition                     |       |
 | created_at  | text    | Timestamp of creation                          |       |
 | updated_at  | text    | Timestamp of last update                       |       |
+
 
 Legend:
 - PK: Primary Key
