@@ -4,6 +4,9 @@ import { createTestDb, TestDb, cleanupTestDb} from '../../database/testDb';
 import { Express } from 'express';
 import { createApp } from '../../app';
 import { AppServices } from '../../types';
+import { Kysely } from 'kysely';
+import { Database } from '../../database/types';
+import jwt from 'jsonwebtoken';
 
 /**
  * Creates a mock Express request object with common properties
@@ -53,14 +56,14 @@ export {cleanupTestDb}
 /**
  * Creates a test user and returns common test entities
  */
-export async function createTestUser(db: TestDb) {
-  const userId = uuidv4();
-
+export async function createTestUser(db: Kysely<Database>) {
+  const userId = 'test-user-' + Date.now();
+  
   await db
     .insertInto('users')
     .values({
       id: userId,
-      email: 'test@example.com',
+      email: `test${Date.now()}@example.com`,
       name: 'Test User',
       password_hash: 'hash',
       salt: 'salt',
@@ -70,7 +73,13 @@ export async function createTestUser(db: TestDb) {
     })
     .execute();
 
-  return {
-    userId
-  };
-} 
+  return { userId };
+}
+
+// Delete a test user
+export async function deleteTestUser(db: TestDb, userId: string) {
+  await db
+    .deleteFrom('users')
+    .where('id', '=', userId)
+    .execute();
+}

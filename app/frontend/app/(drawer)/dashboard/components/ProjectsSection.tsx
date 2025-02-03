@@ -1,28 +1,35 @@
+import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
-import { Project, User } from '../../../../src/backend-js-api';
 import { useApi } from '../../../../services/api';
-import { useProjects } from '../../../../services/projects';
+import { listProjectsInOrganization, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
+import type { ListProjectsInOrganizationResponses } from '../../../../client/types.gen';
 import { SectionHeader } from './SectionHeader';
 import { ProjectActions } from './ProjectActions';
 
-type UserWithOrg = User & { organizations: { id: string; name: string }[] };
+type Project = ListProjectsInOrganizationResponses['200'][number];
 
 interface ProjectsSectionProps {}
 
 export const ProjectsSection = ({}: ProjectsSectionProps) => {
   const { auth } = useApi();
-  const { projects: projectsApi } = useProjects();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadProjects = async () => {
     try {
-      const user = await auth.getCurrentUser() as UserWithOrg;
-      const organizationId = user.organizations[0].id;
-      const projectsResponse = await projectsApi.getProjects(organizationId);
-      setProjects(projectsResponse);
+      const user = await getUserDetailsWithOrganizations();
+      if (!user?.data?.organizations?.[0]?.id) return;
+
+      const organizationId = user.data.organizations[0].id;
+      const response = await listProjectsInOrganization({
+        path: { organizationId }
+      });
+      
+      if (response.data) {
+        setProjects(response.data);
+      }
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -60,7 +67,7 @@ export const ProjectsSection = ({}: ProjectsSectionProps) => {
                 <Text className="font-medium text-gray-900">{project.name}</Text>
                 <Text className="text-sm text-gray-500">{project.description}</Text>
                 <Text className="text-xs text-gray-400 mt-0.5">
-                  Modified {new Date(project.updatedAt).toLocaleDateString()}
+                  Modified {project.updated_at ? new Date(project.updated_at).toLocaleDateString() : 'Never'}
                 </Text>
               </View>
             </Pressable>

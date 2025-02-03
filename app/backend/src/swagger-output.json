@@ -34,6 +34,16 @@
     }
   ],
   "paths": {
+    "/billing/webhook": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/ping/": {
       "get": {
         "tags": [
@@ -189,7 +199,7 @@
         ]
       }
     },
-    "/auth/login": {
+    "/users/login": {
       "post": {
         "tags": [
           "Users"
@@ -344,7 +354,7 @@
         }
       }
     },
-    "/auth/register": {
+    "/users/register": {
       "post": {
         "tags": [
           "Users"
@@ -474,6 +484,126 @@
             }
           }
         }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user details",
+        "description": "Retrieves authenticated user details including organizations and roles",
+        "operationId": "getUserDetailsWithOrganizations",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "last_login_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "organizations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "admin",
+                              "member"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid token"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "User not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error fetching user details"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/folders/{folderId}/contents": {
@@ -2037,11 +2167,17 @@
     },
     "/projects/{projectId}/scad": {
       "get": {
-        "description": "",
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get latest SCAD object for a project",
+        "description": "Get the latest SCAD object for a project. If no objects exist, return an empty string.",
+        "operationId": "getProjectScad",
         "parameters": [
           {
             "name": "projectId",
             "in": "path",
+            "description": "The ID of the project",
             "required": true,
             "schema": {
               "type": "string"
@@ -2056,13 +2192,91 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Latest SCAD object retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scad": {
+                      "type": "string",
+                      "description": "The SCAD object content. Empty string if no objects exist."
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/stl": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get latest STL for a project",
+        "description": "Get the latest STL for a project. If no objects exist, return an empty string.",
+        "operationId": "getProjectStl",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The ID of the project",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest STL retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stl": {
+                      "type": "string",
+                      "description": "The STL content. Empty string if no objects exist."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/admin/users/": {
@@ -2177,6 +2391,313 @@
             "description": "Internal Server Error"
           }
         }
+      }
+    },
+    "/language-models/gemini/{projectId}/generate-objects": {
+      "post": {
+        "tags": [
+          "Language Models"
+        ],
+        "summary": "Generate 3D objects based on natural language instructions",
+        "description": "Uses Gemini AI to generate 3D objects and scene state based on text instructions",
+        "operationId": "generateObjects",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the project to generate objects for",
+            "format": "uuid"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Objects generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "json": {
+                      "type": "object",
+                      "description": "Generated scene description",
+                      "properties": {
+                        "objects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "cube",
+                                  "sphere",
+                                  "cylinder",
+                                  "polyhedron"
+                                ]
+                              },
+                              "params": {
+                                "type": "object"
+                              },
+                              "position": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "number"
+                                  },
+                                  "y": {
+                                    "type": "number"
+                                  },
+                                  "z": {
+                                    "type": "number"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "scene": {
+                          "type": "object",
+                          "properties": {
+                            "rotation": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number"
+                                },
+                                "y": {
+                                  "type": "number"
+                                },
+                                "z": {
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "reasoning": {
+                      "type": "string",
+                      "description": "Step-by-step reasoning for the generation"
+                    },
+                    "messageId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the generated message in conversation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Instructions are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "User not authenticated"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - No access to project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No access to this project"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Project not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error generating objects"
+                    },
+                    "details": {
+                      "type": "string",
+                      "description": "Additional error details if available"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "instructions"
+                ],
+                "properties": {
+                  "instructions": {
+                    "type": "string",
+                    "description": "Natural language instructions for generating 3D objects",
+                    "example": "Create a red cube floating above a blue sphere"
+                  },
+                  "sceneRotation": {
+                    "type": "object",
+                    "description": "Current rotation of the scene in radians",
+                    "properties": {
+                      "x": {
+                        "type": "number",
+                        "default": 0
+                      },
+                      "y": {
+                        "type": "number",
+                        "default": 0
+                      },
+                      "z": {
+                        "type": "number",
+                        "default": 0
+                      }
+                    }
+                  },
+                  "manualJson": {
+                    "type": "object",
+                    "description": "Optional manual JSON input to override generation",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/create-checkout-session/": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Create Stripe Checkout session",
+        "description": "Creates a new Stripe Checkout session for subscription",
+        "operationId": "createCheckoutSession",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/billing/create-portal-session/": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Create Stripe Customer Portal session",
+        "description": "Creates a new Stripe Customer Portal session for managing subscription",
+        "operationId": "createPortalSession",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     }
   },

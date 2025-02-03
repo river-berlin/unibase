@@ -3,13 +3,6 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  password_hash: string;
-}
-
 
 interface LoginRequest extends Request {
   body: {
@@ -23,7 +16,7 @@ const router = Router();
 /**
  * Login user
  * 
- * @route POST /auth/login
+ * @route POST /users/login
  * @param {string} email - User's email address
  * @param {string} password - User's password
  * 

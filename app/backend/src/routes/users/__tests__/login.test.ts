@@ -80,7 +80,7 @@ describe('Login Route', () => {
 
   it('should login successfully with correct credentials', async () => {
     const response = await request(app)
-      .post('/auth/login')
+      .post('/users/login')
       .send({
         email: testUser.email,
         password: testPassword
@@ -114,7 +114,7 @@ describe('Login Route', () => {
 
   it('should return 401 with incorrect password', async () => {
     const response = await request(app)
-      .post('/auth/login')
+      .post('/users/login')
       .send({
         email: testUser.email,
         password: 'wrongpassword'
@@ -128,7 +128,7 @@ describe('Login Route', () => {
 
   it('should return 401 with non-existent email', async () => {
     const response = await request(app)
-      .post('/auth/login')
+      .post('/users/login')
       .send({
         email: 'nonexistent@example.com',
         password: testPassword
@@ -142,7 +142,7 @@ describe('Login Route', () => {
 
   it('should return 400 for invalid email format', async () => {
     const response = await request(app)
-      .post('/auth/login')
+      .post('/users/login')
       .send({
         email: 'invalid-email',
         password: testPassword
@@ -160,7 +160,7 @@ describe('Login Route', () => {
 
   it('should return 400 for empty password', async () => {
     const response = await request(app)
-      .post('/auth/login')
+      .post('/users/login')
       .send({
         email: testUser.email,
         password: ''

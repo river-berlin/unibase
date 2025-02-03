@@ -1,11 +1,13 @@
 import { Position, Scene, GenerateResult } from './types';
-import { generateReasoning } from './generators/reasoning';
-import { generateJson } from './generators/json';
-import { validateScene } from './validators';
+import { FunctionCall, GoogleGenerativeAI } from '@google/generative-ai';
 import { Database } from '../../../database/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Kysely, Transaction } from 'kysely';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { jsonToScad, scadToStl } from '../../../craftstool/scadify';
+import { scadToJson } from '../../../craftstool/scadToJson';
+
+// Import all tools
+import { basicDeclarationsAndFunctions } from '../../../craftstool/tools';
 
 /**
  * Generate 3D objects based on natural language instructions
@@ -15,7 +17,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export async function generateObjects(
   instructions: string,
   sceneRotation: Position = { x: 0, y: 0, z: 0 },
-  manualJson: Scene | null = null,
+  existingScad: string | undefined = undefined,
   projectId: string,
   userId: string,
   db: Kysely<Database>,
@@ -50,10 +52,10 @@ export async function generateObjects(
                  },
                  description: 'Current rotation of the scene in radians'
                },
-               manualJson: {
-                 type: 'object',
+               existingScad: {
+                 type: 'string',
                  nullable: true,
-                 description: 'Optional manual JSON input to override generation'
+                 description: 'Optional existing OpenSCAD code'
                },
                projectId: {
                  type: 'string',
@@ -142,25 +144,97 @@ export async function generateObjects(
        }
      }
   */
-  // Validate manual JSON if provided
-  if (manualJson) {
-    try {
-      validateScene(manualJson);
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Invalid manual JSON: ${error.message}`);
+  existingScad = existingScad?.replace(/undefined/g, "1");
+
+  // Set up the model with tools
+  const model = gemini.getGenerativeModel({
+    model: "gemini-2.0-flash-exp",
+    tools: {
+      // @ts-ignore
+      functionDeclarations: basicDeclarationsAndFunctions.map(tool => tool.declaration)
+    }
+  });
+
+  // Create the prompt
+  const prompt = `You are a 3D scene creation expert. Given these instructions and existing OpenSCAD code, create or modify a 3D scene using the available tools.
+
+Instructions: ${instructions}
+
+Current scene rotation: ${JSON.stringify(sceneRotation)}
+${existingScad ? `Current OpenSCAD code:\n${existingScad}` : 'Starting with empty scene'}
+
+Think through this step by step:
+1. What objects need to be created or modified?
+2. Where should each object be placed?
+3. What rotations are needed?
+
+First explain your reasoning, then use the available tools to create the scene.
+
+Available tools:
+- add_cube: Creates a cube at origin
+- add_cuboid: Creates a cuboid with specified dimensions
+- place_object: Positions an object at specific coordinates
+- specify_rotation: Sets rotation angles for an object`;
+
+  // Generate the response with reasoning and tool calls
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  });
+
+  const response = result.response;
+  const reasoning = response.text();
+  
+  // Execute tool calls in sequence to build the scene
+  let sceneObjects = await scadToJson(existingScad || '');
+  const errors: string[] = [];
+
+
+  const toolCallResults: { name: string; args: any; result?: any; error?: string; }[] = [];
+
+  let functionCalls: FunctionCall[] | undefined = undefined;
+
+  if (response.functionCalls) {
+    functionCalls = response.functionCalls() || [];
+
+    for (const call of functionCalls) {
+      const { name, args } = call;
+      const tool = basicDeclarationsAndFunctions.find(tool => tool.declaration.name === name);
+      if (tool) {
+      try {
+        const result = await tool.function(sceneObjects, args);
+        toolCallResults.push({ name, args, result })
+        
+      } catch (error) {
+        const errorMsg = `Error executing tool ${name}: ${error instanceof Error ? error.message : String(error)}`;
+        errors.push(errorMsg);
+        toolCallResults.push({ name, args, error: errorMsg });
       }
-      throw error;
+    } else {
+      const errorMsg = `Unknown tool: ${name}`;
+      errors.push(errorMsg);
+        toolCallResults.push({ name, args, error: errorMsg });
+      }
     }
   }
 
-  // Generate step-by-step reasoning
-  const reasoning = await generateReasoning(instructions, sceneRotation, manualJson, gemini);
+  // Generate STL from the scene objects
+  let scad: string;
+  let stl: string;
+  try {
+    if (!sceneObjects || sceneObjects.length === 0) {
+      scad = '';
+      stl = '';
+    } else {
+      scad = jsonToScad(sceneObjects);
+      stl = await scadToStl(scad);
+    }
+  } catch (error) {
+    errors.push(`Error generating 3D model: ${error instanceof Error ? error.message : String(error)}`);
+    scad = '';
+    stl = '';
+  }
 
-  // Convert reasoning to JSON
-  const json = await generateJson(reasoning, gemini);
-
-  // Update database with the conversation and message
+  // Update database with conversation and message
   const messageId = await db.transaction().execute(async (trx: Transaction<Database>) => {
     const now = new Date().toISOString();
 
@@ -187,47 +261,58 @@ export async function generateObjects(
       conversation = { id: conversationId };
     }
 
-    // Create user message
+    // Create object record
+    const objectId = uuidv4();
+    await trx
+      .insertInto('objects')
+      .values({
+        id: objectId,
+        object: scad,
+        created_at: now,
+        updated_at: now
+      })
+      .execute();
+
+    // Create messages with object_id reference
     const userMessageId = uuidv4();
-    await trx
-      .insertInto('messages')
-      .values({
-        id: userMessageId,
-        conversation_id: conversation.id,
-        role: 'user',
-        content: instructions,
-        tool_calls: null,
-        tool_outputs: null,
-        input_tokens_used: 0,
-        output_tokens_used: 0,
-        error: null,
-        created_by: userId,
-        created_at: now,
-        updated_at: now
-      })
-      .execute();
-
-    // Create assistant message
     const assistantMessageId = uuidv4();
+
     await trx
       .insertInto('messages')
-      .values({
-        id: assistantMessageId,
-        conversation_id: conversation.id,
-        role: 'assistant',
-        content: reasoning,
-        tool_calls: JSON.stringify(json),
-        tool_outputs: null,
-        input_tokens_used: 0,
-        output_tokens_used: 0,
-        error: null,
-        created_by: userId,
-        created_at: now,
-        updated_at: now
-      })
+      .values([
+        {
+          id: userMessageId,
+          conversation_id: conversation.id,
+          role: 'user',
+          content: instructions,
+          tool_calls: null,
+          tool_outputs: null,
+          object_id: null,
+          input_tokens_used: 0,
+          output_tokens_used: 0,
+          error: null,
+          created_by: userId,
+          created_at: now,
+          updated_at: now
+        },
+        {
+          id: assistantMessageId,
+          conversation_id: conversation.id,
+          role: 'assistant',
+          content: reasoning,
+          tool_calls: JSON.stringify(functionCalls),
+          tool_outputs: JSON.stringify(sceneObjects),
+          object_id: objectId,
+          input_tokens_used: 0,
+          output_tokens_used: 0,
+          error: errors.length > 0 ? JSON.stringify(errors) : null,
+          created_by: userId,
+          created_at: now,
+          updated_at: now
+        }
+      ])
       .execute();
 
-    // Update conversation timestamp
     await trx
       .updateTable('conversations')
       .set({ updated_at: now })
@@ -238,8 +323,15 @@ export async function generateObjects(
   });
 
   return {
-    json,
+    json: {
+      objects: sceneObjects,
+      scene: { rotation: sceneRotation }
+    },
     reasoning,
-    messageId
+    messageId,
+    stl,
+    scad,
+    errors: errors.length > 0 ? errors : undefined,
+    toolCalls: toolCallResults
   };
 } 

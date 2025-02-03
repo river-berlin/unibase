@@ -31,8 +31,9 @@ export interface Database {
     email: string;
     name: string;
     password_hash: string;
-    salt: string | null;
+    salt: string;
     is_admin: number;
+    stripe_customer_id: string | null;
     avatar: Buffer | null;
     last_login_at: string | null;
     created_at: string;

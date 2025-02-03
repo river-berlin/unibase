@@ -28,7 +28,7 @@ export interface PolyhedronParams {
 }
 
 export interface SceneObject {
-  type: 'cube' | 'sphere' | 'cylinder' | 'polyhedron';
+  type: 'cube' | 'sphere' | 'cylinder' | 'polyhedron' | 'cuboid';
   params: CubeParams | SphereParams | CylinderParams | PolyhedronParams;
   position: Position;
   rotation?: Position;
@@ -42,9 +42,23 @@ export interface Scene {
 }
 
 export interface GenerateResult {
-  json: Scene;
+  json: {
+    objects: any[];
+    scene: {
+      rotation: Position;
+    };
+  };
   reasoning: string;
   messageId: string;
+  stl: string;
+  scad: string;
+  errors?: string[];
+  toolCalls?: {
+    name: string;
+    args: any;
+    result?: any;
+    error?: string;
+  }[];
 }
 
 export interface AuthenticatedRequest extends Request {

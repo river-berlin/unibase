@@ -10,6 +10,35 @@ const router = Router();
  * @route GET /projects/:projectId/scad
  */
 router.get('/:projectId/scad', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  /* #swagger.tags = ['Projects']
+     #swagger.summary = 'Get latest SCAD object for a project'
+     #swagger.description = 'Get the latest SCAD object for a project. If no objects exist, return an empty string.'
+     #swagger.operationId = 'getProjectScad'
+     #swagger.security = [{ "bearerAuth": [] }]
+     #swagger.parameters = [{
+       in: 'path',
+       name: 'projectId',
+       description: 'The ID of the project',
+       required: true,
+       type: 'string'
+     }]
+     #swagger.responses[200] = {
+       description: 'Latest SCAD object retrieved successfully',
+       content: {
+         'application/json': {
+           schema: {
+             type: 'object',
+             properties: {
+               scad: {
+                 type: 'string',
+                 description: 'The SCAD object content. Empty string if no objects exist.'
+               }
+             }
+           }
+         }
+       }
+     } */
+
   if (!req.user) {
     res.status(401).json({ error: 'Unauthorized' });
     return;

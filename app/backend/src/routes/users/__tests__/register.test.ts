@@ -21,7 +21,7 @@ describe('Register Route', () => {
 
   it('should register a new user successfully', async () => {
     const response = await request(app)
-      .post('/auth/register')
+      .post('/users/register')
       .send({
         email: 'test@example.com',
         password: 'password123',
@@ -106,7 +106,7 @@ describe('Register Route', () => {
       .execute();
 
     const response = await request(app)
-      .post('/auth/register')
+      .post('/users/register')
       .send({
         email: 'existing@example.com',
         password: 'password123',
@@ -121,7 +121,7 @@ describe('Register Route', () => {
 
   it('should return 400 for invalid email', async () => {
     const response = await request(app)
-      .post('/auth/register')
+      .post('/users/register')
       .send({
         email: 'invalid-email',
         password: 'password123',
@@ -140,7 +140,7 @@ describe('Register Route', () => {
 
   it('should return 400 for short password', async () => {
     const response = await request(app)
-      .post('/auth/register')
+      .post('/users/register')
       .send({
         email: 'test2@example.com',
         password: 'short',

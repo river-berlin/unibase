@@ -5,7 +5,7 @@ import { TestDb } from '../../../../database/testDb';
 import { setupTestApp, cleanupTestDb } from '../../../__tests__/common';
 import { v4 as uuidv4 } from 'uuid';
 
-describe('Gemini Service', () => {
+describe('Gemini Service - cuboid', () => {
   let db: TestDb;
   let projectId: string;
   let userId: string;
@@ -77,24 +77,31 @@ describe('Gemini Service', () => {
   });
 
   it('should generate objects and store conversation', async () => {
-    let callCount = 0;
+    const mockToolCall = {
+      name: 'add_cuboid',
+      args: {
+        width: 10,
+        height: 10,
+        depth: 10,
+        objectId: 'test-cube-123'
+      }
+    };
+
     const mockGemini = {
       getGenerativeModel: () => ({
-        generateContent: async () => {
-          callCount++;
-          return {
-            response: {
-              text: () => callCount === 1 ? mockReasoning : JSON.stringify(mockScene)
-            }
-          };
-        }
+        generateContent: async () => ({
+          response: {
+            text: () => 'I will create a cuboid.',
+            functionCalls: () => [mockToolCall]
+          }
+        })
       })
     } as any;
 
     const result = await generateObjects(
-      'create a cube',
+      'create a cuboid',
       { x: 0, y: 0, z: 0 },
-      null,
+      undefined,
       projectId,
       userId,
       db,
@@ -102,9 +109,18 @@ describe('Gemini Service', () => {
     );
 
     // Check result
-    expect(result.json).toEqual(mockScene);
-    expect(result.reasoning).toBe(mockReasoning);
+    expect(result.reasoning).toBe('I will create a cuboid.');
     expect(result.messageId).toBeDefined();
+    expect(result?.toolCalls?.length).toBe(1);
+    expect(result?.toolCalls?.[0]).toMatchObject({
+      name: 'add_cuboid',
+      args: {
+        width: 10,
+        height: 10,
+        depth: 10,
+        objectId: 'test-cube-123'
+      }
+    });
 
     // Check conversation was created
     const conversation = await db
@@ -126,25 +142,10 @@ describe('Gemini Service', () => {
 
     expect(messages).toHaveLength(2);
     expect(messages[0].role).toBe('user');
-    expect(messages[0].content).toBe('create a cube');
+    expect(messages[0].content).toBe('create a cuboid');
     expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content).toBe(mockReasoning);
-    expect(messages[1].tool_calls).toBe(JSON.stringify(mockScene));
-  });
-
-  it('should validate manual JSON', async () => {
-    const mockGemini = createMockGemini();
-    const invalidScene = { objects: [{ type: 'invalid' }] };
-
-    await expect(generateObjects(
-      'create a cube',
-      { x: 0, y: 0, z: 0 },
-      invalidScene as any,
-      projectId,
-      userId,
-      db,
-      mockGemini
-    )).rejects.toThrow('Invalid manual JSON');
+    expect(messages[1].content).toBe('I will create a cuboid.');
+    expect(messages[1].tool_calls).toBe(JSON.stringify([mockToolCall]));
   });
 
   it('should reuse existing conversation', async () => {
@@ -167,7 +168,7 @@ describe('Gemini Service', () => {
     const result = await generateObjects(
       'create a cube',
       { x: 0, y: 0, z: 0 },
-      null,
+      undefined,
       projectId,
       userId,
       db,
