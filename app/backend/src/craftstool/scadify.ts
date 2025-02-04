@@ -64,7 +64,7 @@ translate([${position.x}, ${position.y}, ${position.z}]) rotate([${rotation.x}, 
 function sphereToScad(sphere: SphereObject): string {
     const { radius, position, rotation, objectId } = sphere;
     return `// Object: ${objectId}
-translate([${position.x}, ${position.y}, ${position.z}]) rotate([${rotation.x}, ${rotation.y}, ${rotation.z}]) sphere(r=${radius});`;
+translate([${position.x}, ${position.y}, ${position.z}]) rotate([${rotation.x}, ${rotation.y}, ${rotation.z}]) sphere(r=${radius}, $fn=64);`;
 }
 
 /**

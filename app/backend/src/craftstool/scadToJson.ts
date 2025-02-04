@@ -5,7 +5,7 @@ export async function scadToJson(scadCode: string): Promise<any[]> {
   const cuboidRegex = /\/\/\s*Object:\s*([\w-]+)\s*\n\s*translate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*rotate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*cube\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\s*,\s*center=true\);/g;
   
   // Match spheres
-  const sphereRegex = /\/\/\s*Object:\s*([\w-]+)\s*\n\s*translate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*rotate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*sphere\(r=\s*(-?\d+\.?\d*)\s*\);/g;
+  const sphereRegex = /\/\/\s*Object:\s*([\w-]+)\s*\n\s*translate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*rotate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*sphere\(r=\s*(-?\d+\.?\d*)\s*,\s*\$fn=\d+\s*\);/g;
   
   // Match cylinders
   const cylinderRegex = /\/\/\s*Object:\s*([\w-]+)\s*\n\s*translate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*rotate\(\[\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\]\)\s*cylinder\(r=\s*(-?\d+\.?\d*)\s*,\s*h=\s*(-?\d+\.?\d*)\s*,\s*center=true\s*,\s*\$fn=\d+\s*\);/g;
