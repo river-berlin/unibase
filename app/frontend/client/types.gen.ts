@@ -25,6 +25,17 @@ export type AuthenticatedRequest = {
     };
 };
 
+export type PostBillingWebhookData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/billing/webhook';
+};
+
+export type PostBillingWebhookResponses = {
+    default: unknown;
+};
+
 export type PingData = {
     body?: never;
     path?: never;
@@ -1281,31 +1292,6 @@ export type GenerateObjectsResponses = {
 };
 
 export type GenerateObjectsResponse = GenerateObjectsResponses[keyof GenerateObjectsResponses];
-
-export type PostBillingWebhookData = {
-    body?: never;
-    headers?: {
-        'stripe-signature'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/billing/webhook';
-};
-
-export type PostBillingWebhookErrors = {
-    4: unknown;
-    /**
-     * Bad Request
-     */
-    400: unknown;
-};
-
-export type PostBillingWebhookResponses = {
-    /**
-     * OK
-     */
-    200: unknown;
-};
 
 export type CreateCheckoutSessionData = {
     body?: never;
