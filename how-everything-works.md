@@ -64,6 +64,55 @@ app/backend/tests/
 - `app/frontend/src/backend-js-api/`: Copy of the backend-js-api code (required for Metro bundler)
 - `app/frontend/`: Frontend code using Expo/React Native
 
+### Environment Variables Setup
+
+Required environment variables in `.env`:
+
+```env
+# API Keys
+GEMINI_API_KEY=            # Required: Get from Google AI Studio
+STRIPE_SECRET_KEY=         # Required: Get from Stripe Dashboard
+STRIPE_PUBLISHABLE_KEY=    # Required: Get from Stripe Dashboard
+STRIPE_MONTHLY_PRICE_ID=   # Required: Create a price in Stripe Dashboard
+STRIPE_PRODUCT_ID=         # Required: Product ID from Stripe Dashboard
+
+# Stripe Webhook (Important!)
+STRIPE_WEBHOOK_SECRET=     # Required: Get this by running docker-compose up
+                          # The Stripe CLI will print the webhook signing secret
+                          # Look for a line like: "Ready! Your webhook signing secret is whsec_..."
+
+# Authentication
+JWT_SECRET=               # Required: Any secure random string
+NODE_ENV=development     # Optional: defaults to development
+
+# S3/MinIO Configuration (optional, defaults provided)
+S3_ENDPOINT=http://localhost:9000
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin
+AWS_REGION=us-east-1
+
+# Frontend Configuration
+FRONTEND_URL=http://localhost:8081  # Required for Stripe redirect URLs
+```
+
+#### Getting the Stripe Webhook Secret
+
+1. First time setup:
+   ```bash
+   docker compose up
+   ```
+2. Watch the console output for the Stripe CLI container
+3. Look for a message like:
+   ```
+   Ready! Your webhook signing secret is whsec_...
+   ```
+4. Copy this webhook secret to your `.env` file as `STRIPE_WEBHOOK_SECRET`
+5. Restart the containers:
+   ```bash
+   docker compose down
+   docker compose up
+   ```
+
 ### Development Environment
 
 #### Prerequisites
