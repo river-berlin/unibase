@@ -8,7 +8,6 @@ services:
     volumes:
       - ./app/frontend:/app
       - ./app/backend:/backend
-      - /app/node_modules
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - EXPO_PUBLIC_API_URL=http://localhost:3002
@@ -41,7 +40,7 @@ services:
   stripe-cli:
     image: stripe/stripe-cli
     container_name: stripe-cli
-    command: "listen --api-key ${STRIPE_SECRET_KEY} --forward-to backend:3002/billing/webhook"
+    command: "listen --api-key ${STRIPE_SECRET_KEY} --forward-to backend:3002/billing/webhook --skip-verify"
     environment:
       - STRIPE_API_KEY=${STRIPE_SECRET_KEY}
     depends_on:
