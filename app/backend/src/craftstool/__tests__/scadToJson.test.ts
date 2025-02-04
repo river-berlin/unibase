@@ -21,9 +21,9 @@ describe('scadToJson', () => {
     });
 
     it('should parse a sphere from SCAD', async () => {
-        const scad = '// Object: test-sphere-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) sphere(r=5);';
+        const scad = '// Object: test-sphere-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) sphere(r=5, $fn=64);';
         const result = await scadToJson(scad);
-        
+    
         expect(result).toHaveLength(1);
         expect(result[0]).toEqual({
             type: 'sphere',
@@ -68,7 +68,7 @@ describe('scadToJson', () => {
     it('should parse multiple objects from SCAD', async () => {
         const scad = `// Object: test-cube-123\ntranslate([0, 0, 0]) rotate([0, 0, 0]) cube([1, 1, 1], center=true);
 
-// Object: test-sphere-123\ntranslate([2, 0, 0]) rotate([0, 0, 0]) sphere(r=1);`;
+// Object: test-sphere-123\ntranslate([2, 0, 0]) rotate([0, 0, 0]) sphere(r=1, $fn=64);`;
         
         const result = await scadToJson(scad);
         

@@ -25,7 +25,7 @@ describe('scadify', () => {
                 radius: 5
             };
 
-            const expected = '// Object: test-sphere-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) sphere(r=5);';
+            const expected = '// Object: test-sphere-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) sphere(r=5, $fn=64);';
             expect(jsonToScad([sphere])).toBe(expected);
         });
 
@@ -78,7 +78,7 @@ describe('scadify', () => {
             const parts = result.split('\n\n');
             expect(parts).toHaveLength(2);
             expect(parts[0]).toBe('// Object: test-cube-123\ntranslate([0, 0, 0]) rotate([0, 0, 0]) cube([1, 1, 1], center=true);');
-            expect(parts[1]).toBe('// Object: test-sphere-123\ntranslate([2, 0, 0]) rotate([0, 0, 0]) sphere(r=1);');
+            expect(parts[1]).toBe('// Object: test-sphere-123\ntranslate([2, 0, 0]) rotate([0, 0, 0]) sphere(r=1, $fn=64);');
         });
 
         it('should throw error for unknown object type', () => {
