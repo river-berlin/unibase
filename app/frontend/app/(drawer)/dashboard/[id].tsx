@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { ThreeRenderer } from '../../../components/ThreeRenderer';
+import { ThreeRenderer } from './components/render/ThreeRenderer';
 import { CommandTabs } from './components/CommandTabs';
 import { generateObjects, getProjectStl } from '../../../client/sdk.gen';
 
@@ -15,12 +15,12 @@ interface GenerateResponse {
   stl: string;
   scad: string;
   errors?: string[];
-  toolCalls?: {
+  toolCalls: {
     name: string;
     args: any;
     result?: any;
     error?: string;
-  }[];
+  }[] | null;
 }
 
 interface StlResponse {

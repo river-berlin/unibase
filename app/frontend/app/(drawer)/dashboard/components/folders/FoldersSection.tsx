@@ -3,11 +3,11 @@ import { View, Text, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { useApi } from '../../../../services/api';
-import { listAllFoldersInOrganization, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
-import { SectionHeader } from './SectionHeader';
+import { useApi } from '../../../../../services/api';
+import { listAllFoldersInOrganization, getUserDetailsWithOrganizations } from '../../../../../client/sdk.gen';
+import { SectionHeader } from '../SectionHeader';
 import { NewFolderDialog } from './NewFolderDialog';
-import type { ListAllFoldersInOrganizationResponses } from '../../../../client/types.gen';
+import type { ListAllFoldersInOrganizationResponses } from '../../../../../client/types.gen';
 
 type Folder = ListAllFoldersInOrganizationResponses['200'][number];
 

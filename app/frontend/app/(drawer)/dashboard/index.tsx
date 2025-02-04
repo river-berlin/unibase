@@ -1,6 +1,6 @@
 import { View, ScrollView } from 'react-native';
-import { FoldersSection } from './components/FoldersSection';
-import { ProjectsSection } from './components/ProjectsSection';
+import { FoldersSection } from './components/folders/FoldersSection';
+import { ProjectsSection } from './components/projects/ProjectsSection';
 
 const DashboardPage = () => {
   return (

@@ -1,7 +1,7 @@
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { useState } from 'react';
-import { useApi } from '../../../../services/api';
-import { createFolderWithHierarchy, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
+import { useApi } from '../../../../../services/api';
+import { createFolderWithHierarchy, getUserDetailsWithOrganizations } from '../../../../../client/sdk.gen';
 
 interface NewFolderDialogProps {
   onClose: () => void;

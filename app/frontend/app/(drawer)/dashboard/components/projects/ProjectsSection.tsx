@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
-import { useApi } from '../../../../services/api';
-import { listProjectsInOrganization, getUserDetailsWithOrganizations } from '../../../../client/sdk.gen';
-import type { ListProjectsInOrganizationResponses } from '../../../../client/types.gen';
-import { SectionHeader } from './SectionHeader';
+import { useApi } from '../../../../../services/api';
+import { listProjectsInOrganization, getUserDetailsWithOrganizations } from '../../../../../client/sdk.gen';
+import type { ListProjectsInOrganizationResponses } from '../../../../../client/types.gen';
+import { SectionHeader } from '../SectionHeader';
 import { ProjectActions } from './ProjectActions';
+import { NewDialog } from './NewDialog';
 
 type Project = ListProjectsInOrganizationResponses['200'][number];
 
@@ -16,6 +17,7 @@ export const ProjectsSection = ({}: ProjectsSectionProps) => {
   const { auth } = useApi();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
 
   const loadProjects = async () => {
     try {
@@ -53,7 +55,12 @@ export const ProjectsSection = ({}: ProjectsSectionProps) => {
     <>
       <SectionHeader 
         title="Projects" 
-        action={<ProjectActions onSuccess={loadProjects} />}
+        action={
+          <ProjectActions 
+            onSuccess={loadProjects}
+            onNewProject={() => setShowNewProjectDialog(true)}
+          />
+        }
       />
       <View className="flex-row flex-wrap gap-4 p-4">
         {projects.map((project) => (
@@ -74,6 +81,16 @@ export const ProjectsSection = ({}: ProjectsSectionProps) => {
           </Link>
         ))}
       </View>
+
+      {showNewProjectDialog && (
+        <NewDialog
+          onClose={() => setShowNewProjectDialog(false)}
+          onSuccess={() => {
+            setShowNewProjectDialog(false);
+            loadProjects();
+          }}
+        />
+      )}
     </>
   );
 }; 
