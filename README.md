@@ -2,9 +2,8 @@
 
 <img src="readme-files/flowerpots.jpg" alt="flowers in a flowerpot next to a window" width="200" height="200">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL](https://img.shields.io/badge/License-AGPL-green.svg)](https://opensource.org/licenses/AGPL-3.0)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/river-berlin/voicecad/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 > A cool 3D CAD modeling application that lets you design with voice commands.
