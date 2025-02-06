@@ -2393,13 +2393,13 @@
         }
       }
     },
-    "/language-models/gemini/{projectId}/generate-objects": {
+    "/chat/llm/{projectId}/generate-objects": {
       "post": {
         "tags": [
-          "Language Models"
+          "Chat"
         ],
         "summary": "Generate 3D objects based on natural language instructions",
-        "description": "Uses Gemini AI to generate 3D objects and scene state based on text instructions",
+        "description": "Uses LLM-based AI models to generate 3D objects and scene state based on text instructions",
         "operationId": "generateObjects",
         "parameters": [
           {
@@ -2495,6 +2495,26 @@
                       "type": "string",
                       "format": "uuid",
                       "description": "ID of the generated message in conversation"
+                    },
+                    "toolCalls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "stl": {
+                      "type": "string",
+                      "description": "STL file for the generated objects"
+                    },
+                    "scad": {
+                      "type": "string",
+                      "description": "SCAD file for the generated objects"
                     }
                   }
                 }
@@ -2634,6 +2654,94 @@
             }
           }
         }
+      }
+    },
+    "/chat/history/{projectId}/history": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Get chat history for a project",
+        "description": "Returns the conversation history including messages and generated objects",
+        "operationId": "getChatHistory",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the project to get history for",
+            "format": "uuid"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "assistant"
+                        ]
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "tool_calls": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "tool_outputs": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "object_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/billing/create-checkout-session/": {

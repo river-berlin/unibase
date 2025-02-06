@@ -8,7 +8,9 @@ services:
       args:
         - NODE_ENV=production
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  
+      - OPENAI_MODEL=${OPENAI_MODEL}
       - PORT=3002
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}

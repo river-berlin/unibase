@@ -11,7 +11,7 @@ export const addCuboid = async (object_details: any, lmparams: any) => {
         rotation: { x: 0, y: 0, z: 0 }
     };
     object_details.push(object);
-    return object;
+    return "added cuboid: " + JSON.stringify(object);
 };
 
 export const addCuboidTool = {
@@ -34,10 +34,11 @@ export const addCuboidTool = {
             },
             objectId: {
                 type: 'string',
-                description: 'Optional custom ID for the cuboid. If not provided, one will be generated.',
+                description: 'ID for the cuboid. This must be unique, something creative and super unique',
             }
         },
-        required: ['width', 'height', 'depth']
+        additionalProperties: false,
+        required: ['width', 'height', 'depth', 'objectId']
     }
 };
 

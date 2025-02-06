@@ -9,7 +9,7 @@ export const removeObject = async (object_details: any, lmparams: any) => {
 
     // Remove the object from the array
     const removedObject = object_details.splice(index, 1)[0];
-    return removedObject;
+    return "removed object: " + JSON.stringify(removedObject);
 };
 
 export const removeObjectTool = {
@@ -23,6 +23,7 @@ export const removeObjectTool = {
                 description: 'ID of the object to remove'
             }
         },
+        additionalProperties: false,
         required: ['objectId']
     }
 };

@@ -142,7 +142,7 @@ describe('Create Project Route', () => {
       .executeTakeFirst();
 
     expect(conversation).toBeTruthy();
-    expect(conversation?.model).toBe('gemini-2.0-flash-exp');
+    expect(conversation?.model).toBe(process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL);
     expect(conversation?.status).toBe('active');
   });
 

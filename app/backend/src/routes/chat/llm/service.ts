@@ -1,5 +1,4 @@
-import { Position, Scene, GenerateResult } from './types';
-import { FunctionCall, GoogleGenerativeAI } from '@google/generative-ai';
+import { Position, GenerateResult } from './types';
 import { Database } from '../../../database/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Kysely, Transaction } from 'kysely';
@@ -7,12 +6,12 @@ import { jsonToScad, scadToStl } from '../../../craftstool/scadify';
 import { scadToJson } from '../../../craftstool/scadToJson';
 
 // Import all tools
-import { basicDeclarationsAndFunctions } from '../../../craftstool/tools';
+import { basicDeclarationsAndFunctions, processTools } from '../../../craftstool/tools';
+import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 /**
  * Generate 3D objects based on natural language instructions
- * 
- * @route POST /language-models/gemini/generate
  */
 export async function generateObjects(
   instructions: string,
@@ -21,12 +20,12 @@ export async function generateObjects(
   projectId: string,
   userId: string,
   db: Kysely<Database>,
-  gemini: GoogleGenerativeAI
+  openai: OpenAI
 ): Promise<GenerateResult> {
   /* #swagger.tags = ['Language Models']
      #swagger.summary = 'Generate 3D scene from text'
      #swagger.operationId = 'generateSceneFromInstructions'
-     #swagger.description = 'Generates a 3D scene based on natural language instructions, using Gemini to create step-by-step reasoning and JSON scene description'
+     #swagger.description = 'Generates a 3D scene based on natural language instructions, using LLM-based AI models to create step-by-step reasoning and JSON scene description'
      #swagger.security = [{
        "bearerAuth": []
      }]
@@ -144,76 +143,109 @@ export async function generateObjects(
        }
      }
   */
-  existingScad = existingScad?.replace(/undefined/g, "1");
+  console.log("generating objects");
+  existingScad = existingScad?.replace(/undefined/g, "1")
+  const existingScadMessage = existingScad ? `Current OpenSCAD code:\n${existingScad}` : 'Starting with empty scene';
 
-  // Set up the model with tools
-  const model = gemini.getGenerativeModel({
-    model: "gemini-2.0-flash-exp",
-    tools: {
-      // @ts-ignore
-      functionDeclarations: basicDeclarationsAndFunctions.map(tool => tool.declaration)
-    }
-  });
 
   // Create the prompt
-  const prompt = `You are a 3D scene creation expert. Given these instructions and existing OpenSCAD code, create or modify a 3D scene using the available tools.
+  const prompt = `Given these instructions and existing OpenSCAD code, create or modify a 3D scene using the available tools.
 
 Instructions: ${instructions}
 
 Current scene rotation: ${JSON.stringify(sceneRotation)}
-${existingScad ? `Current OpenSCAD code:\n${existingScad}` : 'Starting with empty scene'}
+${existingScadMessage}
 
 Think through this step by step:
 1. What objects need to be created or modified?
 2. Where should each object be placed?
 3. What rotations are needed?
 
-First explain your reasoning, then use the available tools to create the scene.
+First explain your reasoning, then use the available tools to create the scene.`;
 
-Available tools:
-- add_cube: Creates a cube at origin
-- add_cuboid: Creates a cuboid with specified dimensions
-- place_object: Positions an object at specific coordinates
-- specify_rotation: Sets rotation angles for an object`;
+  if (!process.env.OPENAI_MODEL) {
+    throw new Error('OPENAI_MODEL is not set');
+  }
 
-  // Generate the response with reasoning and tool calls
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-  });
+  const messages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: 'You are a helpful 3D modeling assistant' },
+    { role: 'user', content: prompt }
+  ];
 
-  const response = result.response;
-  const reasoning = response.text();
-  
-  // Execute tool calls in sequence to build the scene
+  let needsToProcessTool = true;
   let sceneObjects = await scadToJson(existingScad || '');
-  const errors: string[] = [];
+  let errors: string[] = [];
+  let completeToolCallResults: { name: string; args: any; result?: any; error?: string; }[] = [];
+  let numberOfIterations = 0;
 
+  while (needsToProcessTool && numberOfIterations < 5) {
+    numberOfIterations++;
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL,
+      messages,
+      tools: basicDeclarationsAndFunctions.map(tool => {
+        // @ts-ignore
+        tool.declaration.strict = true;
+        return {
+          type: 'function',
+          function: tool.declaration
+        }
+      })
+    });
 
-  const toolCallResults: { name: string; args: any; result?: any; error?: string; }[] = [];
+    
+    const primaryChoice = completion.choices[0];
+    const toolCalls = primaryChoice.message.tool_calls;
 
-  let functionCalls: FunctionCall[] | undefined = undefined;
+    messages.push(primaryChoice.message);
 
-  if (response.functionCalls) {
-    functionCalls = response.functionCalls() || [];
+    console.log("toolCalls", toolCalls?.map((toolCall) => toolCall.function.name));
+    console.log("message", primaryChoice.message);
+    console.log("messages length", messages.length);
 
-    for (const call of functionCalls) {
-      const { name, args } = call;
-      const tool = basicDeclarationsAndFunctions.find(tool => tool.declaration.name === name);
-      if (tool) {
-      try {
-        const result = await tool.function(sceneObjects, args);
-        toolCallResults.push({ name, args, result })
-        
-      } catch (error) {
-        const errorMsg = `Error executing tool ${name}: ${error instanceof Error ? error.message : String(error)}`;
-        errors.push(errorMsg);
-        toolCallResults.push({ name, args, error: errorMsg });
+    if (toolCalls) {
+      // Process aggregated tool calls
+      const toolCallResults = await processTools(sceneObjects, toolCalls, basicDeclarationsAndFunctions);
+
+      for(const toolCall of toolCallResults) {
+        let content = toolCall.result ? toolCall.result : toolCall.error;
+
+        completeToolCallResults.push({
+          name: toolCall.originalToolCall.function.name,
+          args: toolCall.originalToolCall.function.arguments,
+          result: toolCall.result,
+          error: toolCall.error
+        });
+
+        console.log("content", content);
+
+        if (toolCall.error) {
+          errors.push(toolCall.error);
+        }
+
+        messages.push({
+          role: 'tool',
+          content: content,
+          tool_call_id: toolCall.originalToolCall.id
+        });
       }
+
+
+
+      messages.push({
+        role: "user",
+        content: `New scene:\n${jsonToScad(sceneObjects)}, if the changes are done don't make any more changes"`
+      });
     } else {
-      const errorMsg = `Unknown tool: ${name}`;
-      errors.push(errorMsg);
-        toolCallResults.push({ name, args, error: errorMsg });
-      }
+      needsToProcessTool = false;
+    }
+  }
+
+  let content = "";
+
+  for (const message of messages) {
+    if (message.role === 'assistant') {
+      content += message.content;
     }
   }
 
@@ -253,7 +285,7 @@ Available tools:
         .values({
           id: conversationId,
           project_id: projectId,
-          model: 'gemini-2.0-flash-exp',
+          model: process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL,
           status: 'active',
           updated_at: now
         })
@@ -299,8 +331,8 @@ Available tools:
           id: assistantMessageId,
           conversation_id: conversation.id,
           role: 'assistant',
-          content: reasoning,
-          tool_calls: JSON.stringify(functionCalls),
+          content: content,
+          tool_calls: JSON.stringify(completeToolCallResults),
           tool_outputs: JSON.stringify(sceneObjects),
           object_id: objectId,
           input_tokens_used: 0,
@@ -322,16 +354,18 @@ Available tools:
     return assistantMessageId;
   });
 
-  return {
+  const result = {
     json: {
       objects: sceneObjects,
       scene: { rotation: sceneRotation }
     },
-    reasoning,
+    reasoning: content,
     messageId,
     stl,
     scad,
     errors: errors.length > 0 ? errors : undefined,
-    toolCalls: toolCallResults
+    toolCalls: completeToolCallResults
   };
+
+  return result
 } 

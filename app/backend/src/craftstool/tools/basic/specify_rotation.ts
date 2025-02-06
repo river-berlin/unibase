@@ -3,7 +3,7 @@ export const specifyRotation = async (object_details: any, lmparams: any) => {
     // loop through the object_details and find the object with the given objectId
     const object = object_details.find((obj: any) => obj.objectId === objectId);
     object.rotation = { x, y, z };
-    return object;
+    return "rotated object: " + JSON.stringify(object);
 };
 
 export const specifyRotationTool = {
@@ -29,6 +29,7 @@ export const specifyRotationTool = {
                 description: 'Z-axis rotation in degrees'
             }
         },
+        additionalProperties: false,
         required: ['objectId', 'x', 'y', 'z']
     }
 };

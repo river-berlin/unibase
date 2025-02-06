@@ -6,9 +6,9 @@ import { generateObjects } from './service';
 const router = Router();
 
 router.post('/:projectId/generate-objects', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  /* #swagger.tags = ['Language Models']
+  /* #swagger.tags = ['Chat']
      #swagger.summary = 'Generate 3D objects based on natural language instructions'
-     #swagger.description = 'Uses Gemini AI to generate 3D objects and scene state based on text instructions'
+     #swagger.description = 'Uses LLM-based AI models to generate 3D objects and scene state based on text instructions'
      #swagger.operationId = 'generateObjects'
      #swagger.security = [{
        "bearerAuth": []
@@ -109,6 +109,26 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
                  type: 'string',
                  format: 'uuid',
                  description: 'ID of the generated message in conversation'
+               },
+               toolCalls: {
+                 type: 'array',
+                 items: {
+                   type: 'object'
+                 }
+               },
+               errors: {
+                 type: 'array',
+                 items: {
+                   type: 'string'
+                 }
+               },
+               stl: {
+                 type: 'string',
+                 description: 'STL file for the generated objects'
+               },
+               scad: {
+                 type: 'string',
+                 description: 'SCAD file for the generated objects'
                }
              }
            }
@@ -223,7 +243,7 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
 
     // Verify project exists and user has access
     const db = req.app.locals.db;
-    const gemini = req.app.locals.gemini;
+    const openai = req.app.locals.openai;
 
     // Get the latest object for this project if it exists
     const latestObject = await db
@@ -268,8 +288,9 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
       req.params.projectId,
       req.user.userId,
       db,
-      gemini
+      openai
     );
+
 
     res.json(result);
   } catch (error) {
