@@ -16,39 +16,7 @@
 
 ### Development Setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/river-berlin/voicecad.git
-   cd voicecad
-   ```
-
-2. Create a `.env` file in the root directory:
-   ```env
-   # Required environment variables
-   GEMINI_API_KEY=your_gemini_api_key
-   JWT_SECRET=your_jwt_secret
-   NODE_ENV=development
-
-   # S3/MinIO configuration (defaults provided)
-   S3_ENDPOINT=http://localhost:9000
-   AWS_ACCESS_KEY_ID=minioadmin
-   AWS_SECRET_ACCESS_KEY=minioadmin
-   AWS_REGION=us-east-1
-
-   # Stripe Configuration (required for billing features)
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   STRIPE_MONTHLY_PRICE_ID=your_stripe_price_id
-   ```
-
-3. Start the development environment:
-   ```bash
-   docker-compose up
-   ```
-
-4. Access the applications:
-   - Frontend: http://localhost:19000
-   - Backend API: http://localhost:3002
-   - MinIO Console: http://localhost:9001
+See [how-everything-works.md](how-everything-works.md) to get started!
 
 ## 📚 Supported Features & Roadmap
 

@@ -66,52 +66,17 @@ app/backend/tests/
 
 ### Environment Variables Setup
 
-Required environment variables in `.env`:
+See `.env.example` for all variables.
 
-```env
-# API Keys
-GEMINI_API_KEY=            # Required: Get from Google AI Studio
-STRIPE_SECRET_KEY=         # Required: Get from Stripe Dashboard
-STRIPE_PUBLISHABLE_KEY=    # Required: Get from Stripe Dashboard
-STRIPE_MONTHLY_PRICE_ID=   # Required: Create a price in Stripe Dashboard
-STRIPE_PRODUCT_ID=         # Required: Product ID from Stripe Dashboard
+Special note for Stripe:
 
-# Stripe Webhook (Important!)
-STRIPE_WEBHOOK_SECRET=     # Required: Get this by running docker-compose up
-                          # The Stripe CLI will print the webhook signing secret
-                          # Look for a line like: "Ready! Your webhook signing secret is whsec_..."
+You will need to run the tests or docker-compose up once to get the webhook secret.
 
-# Authentication
-JWT_SECRET=               # Required: Any secure random string
-NODE_ENV=development     # Optional: defaults to development
-
-# S3/MinIO Configuration (optional, defaults provided)
-S3_ENDPOINT=http://localhost:9000
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin
-AWS_REGION=us-east-1
-
-# Frontend Configuration
-FRONTEND_URL=http://localhost:8081  # Required for Stripe redirect URLs
-```
-
-#### Getting the Stripe Webhook Secret
-
-1. First time setup:
-   ```bash
-   docker compose up
-   ```
-2. Watch the console output for the Stripe CLI container
-3. Look for a message like:
-   ```
-   Ready! Your webhook signing secret is whsec_...
-   ```
-4. Copy this webhook secret to your `.env` file as `STRIPE_WEBHOOK_SECRET`
-5. Restart the containers:
-   ```bash
-   docker compose down
-   docker compose up
-   ```
+For the Stripe webhook secret:
+1. First run `docker compose up` or the tests
+2. Watch for the Stripe CLI output showing the webhook secret
+3. Copy the `whsec_...` value to your `.env` file
+4. Restart the services
 
 ### Development Environment
 
@@ -121,23 +86,7 @@ FRONTEND_URL=http://localhost:8081  # Required for Stripe redirect URLs
 
 #### Environment Setup
 
-1. Create a `.env` file in the root directory with the following variables:
-```env
-# Required environment variables
-GEMINI_API_KEY=your_gemini_api_key
-JWT_SECRET=your_jwt_secret
-NODE_ENV=development
-
-# S3/MinIO configuration (defaults provided)
-S3_ENDPOINT=http://localhost:9000
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin
-AWS_REGION=us-east-1
-
-# Stripe Configuration (required for billing features)
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_MONTHLY_PRICE_ID=your_stripe_price_id
-```
+1. Create a `.env` file in the root directory with all the variables from `.env.example` (ensure the stripe secret is set as described above)
 
 2. Start all services:
 ```bash
