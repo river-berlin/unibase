@@ -143,7 +143,6 @@ export async function generateObjects(
        }
      }
   */
-  console.log("generating objects");
   existingScad = existingScad?.replace(/undefined/g, "1")
   const existingScadMessage = existingScad ? `Current OpenSCAD code:\n${existingScad}` : 'Starting with empty scene';
 
@@ -199,10 +198,6 @@ First explain your reasoning, then use the available tools to create the scene.`
 
     messages.push(primaryChoice.message);
 
-    console.log("toolCalls", toolCalls?.map((toolCall) => toolCall.function.name));
-    console.log("message", primaryChoice.message);
-    console.log("messages length", messages.length);
-
     if (toolCalls) {
       // Process aggregated tool calls
       const toolCallResults = await processTools(sceneObjects, toolCalls, basicDeclarationsAndFunctions);
@@ -217,7 +212,6 @@ First explain your reasoning, then use the available tools to create the scene.`
           error: toolCall.error
         });
 
-        console.log("content", content);
 
         if (toolCall.error) {
           errors.push(toolCall.error);

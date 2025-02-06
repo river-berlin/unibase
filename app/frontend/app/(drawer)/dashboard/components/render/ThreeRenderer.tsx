@@ -23,7 +23,6 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
   } | null>(null);
   
   const loadSTL = (stlText: string) => {
-    console.log('loading stl', stlText);
     if (!sceneRef.current || !cameraRef.current || !controlsRef.current) return;
 
     // Store current camera and controls state before loading new STL
@@ -41,7 +40,6 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     }
 
     if (stlText.trim() === '') {
-      console.log('no stl data');
       return;
     }
 

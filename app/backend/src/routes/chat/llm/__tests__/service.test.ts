@@ -95,12 +95,12 @@ describe('OpenAI Service - cuboid', () => {
     expect(result?.toolCalls?.length).toBe(1);
     expect(result?.toolCalls?.[0]).toMatchObject({
       name: 'add_cuboid',
-      args: {
+      args: JSON.stringify({
         width: 10,
         height: 10,
         depth: 10,
         objectId: 'test-cube-123'
-      }
+      })
     });
 
     // Check conversation was created
@@ -126,15 +126,15 @@ describe('OpenAI Service - cuboid', () => {
     expect(messages[0].content).toBe('create a cuboid');
     expect(messages[1].role).toBe('assistant');
     expect(messages[1].content).toBe(mockReasoning + mockConfirmation);
-    expect(messages[1].tool_calls).toBe(JSON.stringify([{
+    expect(JSON.parse(messages[1].tool_calls as string)).toMatchObject([{
       name: 'add_cuboid',
-      args: {
+      args: JSON.stringify({
         width: 10,
         height: 10,
         depth: 10,
         objectId: 'test-cube-123'
-      }
-    }]));
+      })
+    }]);
   });
 
   it('should reuse existing conversation', async () => {

@@ -85,8 +85,6 @@ export function useChatLogic(
           }
         ]);
 
-        console.log('new stl', response.data.stl);
-
         // Update STL
         onStlUpdate(response.data.stl);
       }
