@@ -96,21 +96,36 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let timeoutId: NodeJS.Timeout;
+
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        setContainerSize({ width, height });
-        
-        if (cameraRef.current && rendererRef.current) {
-          cameraRef.current.aspect = width / height;
-          cameraRef.current.updateProjectionMatrix();
-          rendererRef.current.setSize(width, height);
+        // Clear existing timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
+
+        // Set new timeout
+        timeoutId = setTimeout(() => {
+          const { width, height } = entry.contentRect;
+          setContainerSize({ width, height });
+          
+          if (cameraRef.current && rendererRef.current) {
+            cameraRef.current.aspect = width / height;
+            cameraRef.current.updateProjectionMatrix();
+            rendererRef.current.setSize(width, height);
+          }
+        }, 100); // 0.1 second delay
       }
     });
 
     resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
+    return () => {
+      resizeObserver.disconnect();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   // Initial setup
