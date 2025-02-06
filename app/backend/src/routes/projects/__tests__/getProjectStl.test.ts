@@ -193,7 +193,7 @@ endsolid OpenSCAD_Model`;
       .values({
         id: conversationId,
         project_id: projectId,
-        model: 'gemini-2.0-flash-exp',
+        model: process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL,
         status: 'active',
         updated_at: now
       })
@@ -311,7 +311,7 @@ endsolid OpenSCAD_Model`;
       .values({
         id: conversationId,
         project_id: projectId,
-        model: 'gemini-2.0-flash-exp',
+        model: process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL,
         status: 'active',
         updated_at: now
       })

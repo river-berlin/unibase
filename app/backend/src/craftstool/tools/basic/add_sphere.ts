@@ -11,7 +11,7 @@ export const addSphere = async (object_details: any, lmparams: any) => {
         rotation: { x: 0, y: 0, z: 0 }
     };
     object_details.push(object);
-    return object;
+    return "added sphere: " + JSON.stringify(object);
 };
 
 export const addSphereTool = {
@@ -26,10 +26,11 @@ export const addSphereTool = {
             },
             objectId: {
                 type: 'string',
-                description: 'Optional custom ID for the sphere. If not provided, one will be generated.',
+                description: 'ID for the sphere. This must be unique, something creative and super unique',
             }
         },
-        required: ['radius']
+        additionalProperties: false,
+        required: ['radius', 'objectId']
     }
 };
 

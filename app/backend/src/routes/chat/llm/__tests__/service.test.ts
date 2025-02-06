@@ -1,11 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
 import { generateObjects } from '../service';
-import { createMockGemini, mockReasoning, mockScene } from './common';
+import { createMockOpenAI, mockReasoning, mockConfirmation } from './common';
 import { TestDb } from '../../../../database/testDb';
 import { setupTestApp, cleanupTestDb } from '../../../__tests__/common';
 import { v4 as uuidv4 } from 'uuid';
 
-describe('Gemini Service - cuboid', () => {
+describe('OpenAI Service - cuboid', () => {
   let db: TestDb;
   let projectId: string;
   let userId: string;
@@ -13,7 +13,7 @@ describe('Gemini Service - cuboid', () => {
   beforeEach(async () => {
     const setup = await setupTestApp();
     db = setup.db;
-    
+
     // Create test user and project
     userId = uuidv4();
     projectId = uuidv4();
@@ -77,26 +77,7 @@ describe('Gemini Service - cuboid', () => {
   });
 
   it('should generate objects and store conversation', async () => {
-    const mockToolCall = {
-      name: 'add_cuboid',
-      args: {
-        width: 10,
-        height: 10,
-        depth: 10,
-        objectId: 'test-cube-123'
-      }
-    };
-
-    const mockGemini = {
-      getGenerativeModel: () => ({
-        generateContent: async () => ({
-          response: {
-            text: () => 'I will create a cuboid.',
-            functionCalls: () => [mockToolCall]
-          }
-        })
-      })
-    } as any;
+    const mockOpenAI = createMockOpenAI();
 
     const result = await generateObjects(
       'create a cuboid',
@@ -105,11 +86,11 @@ describe('Gemini Service - cuboid', () => {
       projectId,
       userId,
       db,
-      mockGemini
+      mockOpenAI
     );
 
     // Check result
-    expect(result.reasoning).toBe('I will create a cuboid.');
+    expect(result.reasoning).toBe(mockReasoning + mockConfirmation);
     expect(result.messageId).toBeDefined();
     expect(result?.toolCalls?.length).toBe(1);
     expect(result?.toolCalls?.[0]).toMatchObject({
@@ -131,7 +112,7 @@ describe('Gemini Service - cuboid', () => {
 
     expect(conversation).toBeTruthy();
     expect(conversation?.status).toBe('active');
-    expect(conversation?.model).toBe('gemini-2.0-flash-exp');
+    expect(conversation?.model).toBe(process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL);
 
     // Check messages were created
     const messages = await db
@@ -144,12 +125,20 @@ describe('Gemini Service - cuboid', () => {
     expect(messages[0].role).toBe('user');
     expect(messages[0].content).toBe('create a cuboid');
     expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content).toBe('I will create a cuboid.');
-    expect(messages[1].tool_calls).toBe(JSON.stringify([mockToolCall]));
+    expect(messages[1].content).toBe(mockReasoning + mockConfirmation);
+    expect(messages[1].tool_calls).toBe(JSON.stringify([{
+      name: 'add_cuboid',
+      args: {
+        width: 10,
+        height: 10,
+        depth: 10,
+        objectId: 'test-cube-123'
+      }
+    }]));
   });
 
   it('should reuse existing conversation', async () => {
-    const mockGemini = createMockGemini(JSON.stringify(mockScene));
+    const mockOpenAI = createMockOpenAI();
     const now = new Date().toISOString();
     const conversationId = uuidv4();
 
@@ -159,20 +148,20 @@ describe('Gemini Service - cuboid', () => {
       .values({
         id: conversationId,
         project_id: projectId,
-        model: 'gemini-2.0-flash-exp',
+        model: process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL,
         status: 'active',
         updated_at: now
       })
       .execute();
 
-    const result = await generateObjects(
+    await generateObjects(
       'create a cube',
       { x: 0, y: 0, z: 0 },
       undefined,
       projectId,
       userId,
       db,
-      mockGemini
+      mockOpenAI
     );
 
     // Check messages were added to existing conversation

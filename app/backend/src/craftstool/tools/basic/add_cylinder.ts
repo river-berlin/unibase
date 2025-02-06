@@ -12,7 +12,7 @@ export const addCylinder = async (object_details: any, lmparams: any) => {
         rotation: { x: 0, y: 0, z: 0 }
     };
     object_details.push(object);
-    return object;
+    return "added cylinder: " + JSON.stringify(object);
 };
 
 export const addCylinderTool = {
@@ -31,10 +31,11 @@ export const addCylinderTool = {
             },
             objectId: {
                 type: 'string',
-                description: 'Optional custom ID for the cylinder. If not provided, one will be generated.',
+                description: 'ID for the cylinder. This must be unique, something creative and super unique',
             }
         },
-        required: ['radius', 'height']
+        additionalProperties: false,
+        required: ['radius', 'height', 'objectId']
     }
 };
 

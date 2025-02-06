@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { Kysely } from 'kysely';
 import { Database } from './database/types';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { OpenAI } from 'openai';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -15,5 +15,5 @@ export interface AuthenticatedRequest extends Request {
 
 export interface AppServices {
   db?: Kysely<Database>;
-  gemini?: GoogleGenerativeAI;
+  openai?: OpenAI;
 } 

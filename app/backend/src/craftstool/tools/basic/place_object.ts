@@ -3,7 +3,7 @@ export const placeObject = async (object_details: any, lmparams: any) => {
     // loop through the object_details and find the object with the given objectId
     const object = object_details.find((obj: any) => obj.objectId === objectId);
     object.position = { x, y, z };
-    return object;
+    return "placed object: " + JSON.stringify(object);
 };
 
 export const placeObjectTool = {
@@ -29,6 +29,7 @@ export const placeObjectTool = {
                 description: 'Z coordinate for object placement'
             }
         },
+        additionalProperties: false,
         required: ['objectId', 'x', 'y', 'z']
     }
 };

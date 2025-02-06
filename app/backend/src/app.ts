@@ -3,7 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 import userRoutes from './routes/users/index';
 import folderRoutes from './routes/folders/index';
 import projectRoutes from './routes/projects/index';
-import languageModelRoutes from './routes/language-models/index';
+import chatRoutes from './routes/chat/index';
 import billingRoutes from './routes/billing/index';
 import pingRoutes from './routes/ping/index';
 import adminRoutes from './routes/admin';
@@ -13,18 +13,18 @@ import { setupCors } from './middleware/cors';
 import { Kysely } from 'kysely';
 import { Database } from './database/types';
 import { db as defaultDb } from './database/db';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { defaultGemini } from './services/gemini';
+import { defaultOpenAI } from './services/openai';
 import webhookRouter from './routes/billing/webhook';
+import OpenAI from 'openai';
 
 interface AppServices {
   db?: Kysely<Database>;
-  gemini?: GoogleGenerativeAI;
+  openai?: OpenAI;
 }
 
 export function createApp({ 
   db = defaultDb,
-  gemini = defaultGemini 
+  openai = defaultOpenAI 
 }: AppServices = {}): Express {
   const app = express();
 
@@ -33,7 +33,7 @@ export function createApp({
 
   // Set instances in app locals for route handlers to access
   app.locals.db = db;
-  app.locals.gemini = gemini;
+  app.locals.openai = openai;
 
 
   // webhook router must be put seperately due to 
@@ -55,7 +55,7 @@ export function createApp({
   app.use('/folders', folderRoutes);
   app.use('/projects', projectRoutes);
   app.use('/admin', adminRoutes);
-  app.use('/language-models', languageModelRoutes);
+  app.use('/chat', chatRoutes);
   app.use('/billing', billingRoutes);
 
   app.use(errorHandler);

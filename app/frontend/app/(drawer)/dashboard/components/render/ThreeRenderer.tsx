@@ -10,19 +10,20 @@ interface ThreeRendererProps {
 
 export function ThreeRenderer({ stlData }: ThreeRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  
-  // Add refs to store camera and controls state
   const cameraStateRef = useRef<{
     position: THREE.Vector3;
     target: THREE.Vector3;
   } | null>(null);
-
+  
   const loadSTL = (stlText: string) => {
+    console.log('loading stl', stlText);
     if (!sceneRef.current || !cameraRef.current || !controlsRef.current) return;
 
     // Store current camera and controls state before loading new STL
@@ -39,18 +40,17 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
       meshRef.current = null;
     }
 
-    // Don't try to load if STL is empty
     if (stlText.trim() === '') {
+      console.log('no stl data');
       return;
     }
 
-    // Create STL loader
     const loader = new STLLoader();
-    
-    // Load STL from text
     const geometry = loader.parse(stlText);
     
-    // Create mesh
+    // Center the geometry
+    geometry.center();
+    
     const material = new THREE.MeshPhongMaterial({
       color: 0x87ceeb,
       shininess: 30,
@@ -61,7 +61,9 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     meshRef.current.castShadow = true;
     meshRef.current.receiveShadow = true;
     
-    // Add to scene
+    // Rotate to match standard orientation
+    meshRef.current.rotation.x = -Math.PI / 2;
+    
     sceneRef.current.add(meshRef.current);
 
     // Adjust camera to fit the mesh only if no previous state exists
@@ -69,10 +71,18 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
       const box = new THREE.Box3().setFromObject(meshRef.current);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
+      
+      // Calculate camera distance based on object size
       const maxDim = Math.max(size.x, size.y, size.z);
-      const fov = 50;
-      const cameraZ = maxDim / (2 * Math.tan((fov * Math.PI) / 360));
-      cameraRef.current.position.set(center.x, center.y, center.z + cameraZ * 2);
+      const fov = cameraRef.current.fov;
+      const cameraDistance = (maxDim * 1.5) / Math.tan((fov * Math.PI) / 360);
+      
+      // Position camera at an isometric view
+      const cameraX = center.x + cameraDistance * Math.cos(Math.PI / 4);
+      const cameraY = center.y + cameraDistance * Math.sin(Math.PI / 4);
+      const cameraZ = center.z + cameraDistance;
+      
+      cameraRef.current.position.set(cameraX, cameraY, cameraZ);
       cameraRef.current.lookAt(center);
       controlsRef.current.target.copy(center);
     } else {
@@ -84,8 +94,30 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     controlsRef.current.update();
   };
 
+  // Handle container size changes
   useEffect(() => {
     if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerSize({ width, height });
+        
+        if (cameraRef.current && rendererRef.current) {
+          cameraRef.current.aspect = width / height;
+          cameraRef.current.updateProjectionMatrix();
+          rendererRef.current.setSize(width, height);
+        }
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Initial setup
+  useEffect(() => {
+    if (!containerRef.current || !containerSize.width || !containerSize.height) return;
 
     // Set up scene
     const scene = new THREE.Scene();
@@ -120,7 +152,7 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     // Set up camera
     const camera = new THREE.PerspectiveCamera(
       30,
-      containerRef.current.clientWidth / containerRef.current.clientHeight,
+      containerSize.width / containerSize.height,
       0.1,
       10000
     );
@@ -129,10 +161,11 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
 
     // Set up renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    renderer.setSize(containerSize.width, containerSize.height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
     // Set up controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -140,20 +173,10 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     controls.dampingFactor = 0.05;
     controlsRef.current = controls;
 
-    // Handle window resize
-    const handleResize = () => {
-      if (!containerRef.current) return;
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    };
-    window.addEventListener('resize', handleResize);
-
     // Animation loop
+    let animationFrameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
@@ -166,18 +189,22 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
       renderer.dispose();
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
     };
-  }, []);
+  }, [containerSize.width, containerSize.height]);
 
   // Update when STL data changes
   useEffect(() => {
     if (stlData) {
       loadSTL(stlData);
+    } else if (sceneRef.current && meshRef.current) {
+      // Clear the scene when no STL data is provided
+      sceneRef.current.remove(meshRef.current);
+      meshRef.current = null;
     }
   }, [stlData]);
 

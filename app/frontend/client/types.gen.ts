@@ -1210,7 +1210,7 @@ export type GenerateObjectsData = {
         projectId: string;
     };
     query?: never;
-    url: '/language-models/gemini/{projectId}/generate-objects';
+    url: '/chat/llm/{projectId}/generate-objects';
 };
 
 export type GenerateObjectsErrors = {
@@ -1288,10 +1288,65 @@ export type GenerateObjectsResponses = {
          * ID of the generated message in conversation
          */
         messageId?: string;
+        toolCalls?: Array<{
+            [key: string]: unknown;
+        }>;
+        errors?: Array<string>;
+        /**
+         * STL file for the generated objects
+         */
+        stl?: string;
+        /**
+         * SCAD file for the generated objects
+         */
+        scad?: string;
     };
 };
 
 export type GenerateObjectsResponse = GenerateObjectsResponses[keyof GenerateObjectsResponses];
+
+export type GetChatHistoryData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * ID of the project to get history for
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/chat/history/{projectId}/history';
+};
+
+export type GetChatHistoryErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Internal Server Error
+     */
+    500: unknown;
+};
+
+export type GetChatHistoryResponses = {
+    /**
+     * Chat history retrieved successfully
+     */
+    200: Array<{
+        id?: string;
+        role?: 'user' | 'assistant';
+        content?: string;
+        tool_calls?: string | null;
+        tool_outputs?: string | null;
+        object_id?: string | null;
+        created_at?: string;
+    }>;
+};
+
+export type GetChatHistoryResponse = GetChatHistoryResponses[keyof GetChatHistoryResponses];
 
 export type CreateCheckoutSessionData = {
     body?: never;
