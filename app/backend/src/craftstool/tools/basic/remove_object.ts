@@ -28,7 +28,7 @@ export const removeObjectTool = {
     }
 };
 
-export const declarationAndFunction = {
+export const details = {
     declaration: removeObjectTool,
     function: removeObject
 } 

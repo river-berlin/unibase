@@ -34,7 +34,7 @@ export const placeObjectTool = {
     }
 };
 
-export const declarationAndFunction = {
+export const details = {
     declaration: placeObjectTool,
     function: placeObject
 }

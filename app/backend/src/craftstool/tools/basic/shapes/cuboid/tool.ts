@@ -1,20 +1,7 @@
-export const addCuboid = async (object_details: any, lmparams: any) => {
-    const { width, height, depth, objectId = undefined } = lmparams;
-    const id = objectId || ("object_" + (object_details.length + 1).toString());
-
-    // Function that adds a cuboid at position 0,0,0 with specified dimensions
-    const object = {
-        type: 'cuboid',
-        objectId: id,
-        position: { x: 0, y: 0, z: 0 },
-        dimensions: { width, height, depth },
-        rotation: { x: 0, y: 0, z: 0 }
-    };
-    object_details.push(object);
-    return "added cuboid: " + JSON.stringify(object);
-};
-
-export const addCuboidTool = {
+/**
+ * OpenAI function declaration for adding cuboids
+ */
+export const tool = {
     name: 'add_cuboid',
     description: 'Adds a cuboid at the origin position (0,0,0) with specified dimensions',
     parameters: {
@@ -40,9 +27,4 @@ export const addCuboidTool = {
         additionalProperties: false,
         required: ['width', 'height', 'depth', 'objectId']
     }
-};
-
-export const declarationAndFunction = {
-    declaration: addCuboidTool,
-    function: addCuboid
-}
+}; 

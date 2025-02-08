@@ -6,7 +6,7 @@ import { jsonToScad, scadToStl } from '../../../craftstool/scadify';
 import { scadToJson } from '../../../craftstool/scadToJson';
 
 // Import all tools
-import { basicDeclarationsAndFunctions, processTools } from '../../../craftstool/tools';
+import { basicTools, processTools } from '../../../craftstool/tools';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
@@ -182,7 +182,7 @@ First explain your reasoning, then use the available tools to create the scene.`
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL,
       messages,
-      tools: basicDeclarationsAndFunctions.map(tool => {
+      tools: basicTools.map(tool => {
         // @ts-ignore
         tool.declaration.strict = true;
         return {
@@ -200,7 +200,7 @@ First explain your reasoning, then use the available tools to create the scene.`
 
     if (toolCalls) {
       // Process aggregated tool calls
-      const toolCallResults = await processTools(sceneObjects, toolCalls, basicDeclarationsAndFunctions);
+      const toolCallResults = await processTools(sceneObjects, toolCalls, basicTools);
 
       for(const toolCall of toolCallResults) {
         let content = toolCall.result ? toolCall.result : toolCall.error;

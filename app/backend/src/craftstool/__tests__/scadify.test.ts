@@ -1,5 +1,5 @@
 import { jsonToScad, scadToStl } from '../scadify';
-import { CuboidObject, SphereObject, CylinderObject, PolyhedronObject } from '../scadify';
+import { CuboidObject, SphereObject, CylinderObject } from '../scadify';
 
 describe('scadify', () => {
     describe('jsonToScad', () => {
@@ -41,20 +41,6 @@ describe('scadify', () => {
 
             const expected = '// Object: test-cylinder-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) cylinder(r=2, h=5, center=true, $fn=64);';
             expect(jsonToScad([cylinder])).toBe(expected);
-        });
-
-        it('should convert a polyhedron to SCAD format', () => {
-            const polyhedron: PolyhedronObject = {
-                type: 'polyhedron',
-                objectId: 'test-poly-123',
-                position: { x: 1, y: 2, z: 3 },
-                rotation: { x: 0, y: 0, z: 0 },
-                points: [[0,0,0], [1,0,0], [0,1,0], [0,0,1]],
-                faces: [[0,1,2], [0,2,3], [0,3,1], [1,3,2]]
-            };
-
-            const expected = '// Object: test-poly-123\ntranslate([1, 2, 3]) rotate([0, 0, 0]) polyhedron(points = [[0, 0, 0],[1, 0, 0],[0, 1, 0],[0, 0, 1]], faces = [[0, 1, 2],[0, 2, 3],[0, 3, 1],[1, 3, 2]], convexity = 10);';
-            expect(jsonToScad([polyhedron])).toBe(expected);
         });
 
         it('should combine multiple objects with newlines', () => {

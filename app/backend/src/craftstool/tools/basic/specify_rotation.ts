@@ -34,7 +34,7 @@ export const specifyRotationTool = {
     }
 };
 
-export const declarationAndFunction = {
+export const details = {
     declaration: specifyRotationTool,
     function: specifyRotation
 }
