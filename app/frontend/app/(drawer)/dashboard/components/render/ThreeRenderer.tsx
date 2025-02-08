@@ -59,9 +59,6 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     meshRef.current.castShadow = true;
     meshRef.current.receiveShadow = true;
     
-    // Rotate to match standard orientation
-    meshRef.current.rotation.x = -Math.PI / 2;
-    
     sceneRef.current.add(meshRef.current);
 
     // Adjust camera to fit the mesh only if no previous state exists
