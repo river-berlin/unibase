@@ -4,7 +4,7 @@ import { createMockOpenAI, mockReasoning, mockConfirmation } from './common';
 import { TestDb } from '../../../../database/testDb';
 import { setupTestApp, cleanupTestDb } from '../../../__tests__/common';
 import { v4 as uuidv4 } from 'uuid';
-
+import { ChatCompletionAssistantMessageParam } from 'openai/resources/chat/completions';
 describe('OpenAI Service - cuboid', () => {
   let db: TestDb;
   let projectId: string;
@@ -78,9 +78,10 @@ describe('OpenAI Service - cuboid', () => {
 
   it('should generate objects and store conversation', async () => {
     const mockOpenAI = createMockOpenAI();
+    const instructions = 'create a cuboid';
 
     const result = await generateObjects(
-      'create a cuboid',
+      instructions,
       { x: 0, y: 0, z: 0 },
       undefined,
       projectId,
@@ -89,13 +90,22 @@ describe('OpenAI Service - cuboid', () => {
       mockOpenAI
     );
 
+    if(!('tool_calls' in result.messages[2])) {
+      console.log(result.messages[0]);
+      console.log(result.messages[1]);
+      throw new Error('tool_calls not found in result.messages[1] are you sure it is an assistant message? - message: ' + JSON.stringify(result.messages[1]));
+    }
     // Check result
-    expect(result.reasoning).toBe(mockReasoning + mockConfirmation);
-    expect(result.messageId).toBeDefined();
-    expect(result?.toolCalls?.length).toBe(1);
-    expect(result?.toolCalls?.[0]).toMatchObject({
+    expect(result.messages.length).toBe(6);
+    expect(result.messages[0].role).toBe('system');
+    expect(result.messages[1].role).toBe('user');
+    expect(result.messages[1].content).toContain(instructions);
+    expect(result.messages[2].role).toBe('assistant');
+    expect(result.messages[2].content).toBe(mockReasoning);
+    expect(result.messages[2].tool_calls?.length).toBe(1);
+    expect(result.messages[2].tool_calls?.[0].function).toMatchObject({
       name: 'add_cuboid',
-      args: JSON.stringify({
+      arguments: JSON.stringify({
         width: 10,
         height: 10,
         depth: 10,
@@ -121,19 +131,22 @@ describe('OpenAI Service - cuboid', () => {
       .where('conversation_id', '=', conversation!.id)
       .execute();
 
-    expect(messages).toHaveLength(2);
-    expect(messages[0].role).toBe('user');
-    expect(messages[0].content).toBe('create a cuboid');
-    expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content).toBe(mockReasoning + mockConfirmation);
-    expect(JSON.parse(messages[1].tool_calls as string)).toMatchObject([{
-      name: 'add_cuboid',
-      args: JSON.stringify({
-        width: 10,
-        height: 10,
-        depth: 10,
-        objectId: 'test-cube-123'
-      })
+    expect(messages).toHaveLength(6);
+    expect(messages[0].role).toBe('system');
+    expect(messages[1].role).toBe('user');
+    expect(messages[1].content).toContain(instructions);
+    expect(messages[2].role).toBe('assistant');
+    expect(messages[2].content).toBe(mockReasoning);
+    expect(JSON.parse(messages[2].tool_calls || '[]')).toMatchObject([{
+      function: {
+        name: 'add_cuboid',
+        arguments: JSON.stringify({
+          width: 10,
+          height: 10,
+          depth: 10,
+          objectId: 'test-cube-123'
+        })
+      }
     }]);
   });
 
@@ -171,6 +184,6 @@ describe('OpenAI Service - cuboid', () => {
       .where('conversation_id', '=', conversationId)
       .execute();
 
-    expect(messages).toHaveLength(2);
+    expect(messages).toHaveLength(6);
   });
 }); 

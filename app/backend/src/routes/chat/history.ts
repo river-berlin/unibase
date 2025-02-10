@@ -83,10 +83,14 @@ router.get('/:projectId/history', authenticateToken, async (req: AuthenticatedRe
         'messages.id',
         'messages.role',
         'messages.content',
+        'messages.conversation_id',
         'messages.tool_calls',
-        'messages.tool_outputs',
+        'messages.tool_call_id',
+        'messages.tool_output',
         'messages.object_id',
-        'messages.created_at'
+        'messages.created_at',
+        'messages.updated_at',
+        'messages.error',
       ])
       .where('conversations.project_id', '=', req.params.projectId)
       .where('conversations.status', '=', 'active')

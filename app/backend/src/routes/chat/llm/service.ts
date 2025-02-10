@@ -1,7 +1,7 @@
 import { Position, GenerateResult } from './types';
 import { Database } from '../../../database/types';
 import { v4 as uuidv4 } from 'uuid';
-import { Kysely, Transaction } from 'kysely';
+import { InsertObject, Kysely, Transaction } from 'kysely';
 import { jsonToScad, scadToStl } from '../../../craftstool/scadify';
 import { scadToJson } from '../../../craftstool/scadToJson';
 
@@ -9,6 +9,19 @@ import { scadToJson } from '../../../craftstool/scadToJson';
 import { basicTools, processTools } from '../../../craftstool/tools';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+
+type ExtendedChatMessage = ChatCompletionMessageParam & {
+  tool_call_id?: string;
+  tool_output?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+}
 
 /**
  * Generate 3D objects based on natural language instructions
@@ -172,7 +185,7 @@ First explain your reasoning, then use the available tools to create the scene.`
   ];
 
   let needsToProcessTool = true;
-  let sceneObjects = await scadToJson(existingScad || '');
+  let sceneObjects = await scadToJson(existingScad || '') || [];
   let errors: string[] = [];
   let completeToolCallResults: { name: string; args: any; result?: any; error?: string; }[] = [];
   let numberOfIterations = 0;
@@ -183,11 +196,11 @@ First explain your reasoning, then use the available tools to create the scene.`
       model: process.env.OPENAI_MODEL,
       messages,
       tools: basicTools.map(tool => {
-        // @ts-ignore
-        tool.declaration.strict = true;
+        const declaration : any = Object.assign({}, tool.declaration);
+        declaration.strict = true;
         return {
           type: 'function',
-          function: tool.declaration
+          function: declaration
         }
       })
     });
@@ -246,24 +259,16 @@ First explain your reasoning, then use the available tools to create the scene.`
   // Generate STL from the scene objects
   let scad: string;
   let stl: string;
-  try {
-    if (!sceneObjects || sceneObjects.length === 0) {
+    if (sceneObjects.length === 0) {
       scad = '';
       stl = '';
     } else {
       scad = jsonToScad(sceneObjects);
-      stl = await scadToStl(scad);
-    }
-  } catch (error) {
-    errors.push(`Error generating 3D model: ${error instanceof Error ? error.message : String(error)}`);
-    scad = '';
-    stl = '';
+    stl = await scadToStl(scad);
   }
 
   // Update database with conversation and message
-  const messageId = await db.transaction().execute(async (trx: Transaction<Database>) => {
-    const now = new Date().toISOString();
-
+  const currMessages = await db.transaction().execute(async (trx: Transaction<Database>) => {
     // Get or create conversation
     let conversation = await trx
       .selectFrom('conversations')
@@ -281,12 +286,13 @@ First explain your reasoning, then use the available tools to create the scene.`
           project_id: projectId,
           model: process.env.OPENAI_BASE_URL + '--' + process.env.OPENAI_MODEL,
           status: 'active',
-          updated_at: now
+          updated_at: new Date().toISOString()
         })
         .execute();
       conversation = { id: conversationId };
     }
 
+    const objectCreatedAt = new Date().toISOString();
     // Create object record
     const objectId = uuidv4();
     await trx
@@ -294,72 +300,50 @@ First explain your reasoning, then use the available tools to create the scene.`
       .values({
         id: objectId,
         object: scad,
-        created_at: now,
-        updated_at: now
+        created_at: objectCreatedAt,
+        updated_at: objectCreatedAt
       })
       .execute();
 
-    // Create messages with object_id reference
-    const userMessageId = uuidv4();
-    const assistantMessageId = uuidv4();
+    const databaseMessages : InsertObject<Database, 'messages'>[] = [];
+
+    for (const message of messages) {
+      const messageId = uuidv4();
+
+      const databaseMessage : InsertObject<Database, 'messages'> = {
+        id: messageId,
+        conversation_id: conversation.id,
+        role: message.role as 'system' | 'user' | 'assistant' | 'tool',
+        content: message.content as string,
+        object_id: (message.role === 'assistant') ? objectId : null,
+        tool_call_id: (message as ExtendedChatMessage).tool_call_id,
+        tool_calls: (message as ExtendedChatMessage).tool_calls ? JSON.stringify((message as ExtendedChatMessage).tool_calls) : null,
+        tool_output: (message as ExtendedChatMessage).tool_output,
+        created_by: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      databaseMessages.push(databaseMessage);
+    }
 
     await trx
       .insertInto('messages')
-      .values([
-        {
-          id: userMessageId,
-          conversation_id: conversation.id,
-          role: 'user',
-          content: instructions,
-          tool_calls: null,
-          tool_outputs: null,
-          object_id: null,
-          input_tokens_used: 0,
-          output_tokens_used: 0,
-          error: null,
-          created_by: userId,
-          created_at: now,
-          updated_at: now
-        },
-        {
-          id: assistantMessageId,
-          conversation_id: conversation.id,
-          role: 'assistant',
-          content: content,
-          tool_calls: JSON.stringify(completeToolCallResults),
-          tool_outputs: JSON.stringify(sceneObjects),
-          object_id: objectId,
-          input_tokens_used: 0,
-          output_tokens_used: 0,
-          error: errors.length > 0 ? JSON.stringify(errors) : null,
-          created_by: userId,
-          created_at: now,
-          updated_at: now
-        }
-      ])
+      .values(databaseMessages)
       .execute();
 
     await trx
-      .updateTable('conversations')
-      .set({ updated_at: now })
-      .where('id', '=', conversation.id)
-      .execute();
+    .updateTable('conversations')
+    .set({ updated_at: new Date().toISOString() })
+    .where('id', '=', conversation.id)
+    .execute();
 
-    return assistantMessageId;
+    return messages;
   });
 
-  const result = {
-    json: {
-      objects: sceneObjects,
-      scene: { rotation: sceneRotation }
-    },
-    reasoning: content,
-    messageId,
+  return {
+    messages: currMessages,
     stl,
-    scad,
-    errors: errors.length > 0 ? errors : undefined,
-    toolCalls: completeToolCallResults
+    scad
   };
-
-  return result
 } 

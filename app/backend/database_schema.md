@@ -94,10 +94,11 @@ Links messages to conversations.
 |-------------------|---------|------------------------------------------------|-------|
 | id                | text    | Primary key, UUID                              | PK    |
 | conversation_id   | text    | Foreign key to conversations.id                | FK    |
-| role              | text    | Message role (user/assistant)                  |       |
+| role              | text    | Message role (user/assistant/tool/system)      |       |
 | content           | text    | Message content                                |       |
 | tool_calls        | text    | Tool calls made by assistant (JSON)            |       |
-| tool_outputs      | text    | Tool outputs from calls (JSON)                 |       |
+| tool_call_id      | text    | ID of the tool call (only for role='tool')    |       |
+| tool_output       | text    | Tool output (only for role='tool')            |       |
 | input_tokens_used | integer | Number of input tokens used                    |       |
 | output_tokens_used| integer | Number of output tokens used                   |       |
 | error             | text    | Error message if failed                        |       |

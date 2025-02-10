@@ -3,18 +3,16 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ToolCallsProps {
-  calls: {
+  functions: {
     name: string;
-    args: any;
-    result?: any;
-    error?: string;
+    arguments: any;
   }[];
 }
 
-export function ToolCalls({ calls }: ToolCallsProps) {
+export function ToolCalls({functions=[]} : ToolCallsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!calls || calls.length === 0) return null;
+  if (functions.length === 0) return null;
 
   return (
     <View className="mt-2 border-l-2 border-blue-300 pl-2">
@@ -30,15 +28,17 @@ export function ToolCalls({ calls }: ToolCallsProps) {
         />
       </TouchableOpacity>
       
-      {isExpanded && calls.map((call, i) => (
-        <View key={i} className="mb-1">
-          <Text className="font-medium text-xs">{call.name}</Text>
-          <Text className="text-xs text-gray-600">
-            {JSON.stringify(call.args, null, 2)}
+      {isExpanded && functions.map((_function : any, _i : any) => (
+        <View key={_i} className="mb-1">
+          <Text className="font-medium text-xs">{_function.function.name}</Text>
+          <Text className="text-xs text-gray-600 ml-2">
+            {Object.entries(JSON.parse(_function.function.arguments)).map(([key, value]) => (
+              <>
+                <Text className="text-xs text-gray-600">{key}: {value}</Text>
+                <br />
+              </>
+            ))}
           </Text>
-          {call.error && (
-            <Text className="text-xs text-red-500">{call.error}</Text>
-          )}
         </View>
       ))}
     </View>

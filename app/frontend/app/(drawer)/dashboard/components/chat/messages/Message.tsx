@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { ToolCalls } from './ToolCalls'; 
 interface ReasoningProps {
   title: string;
   content: string;
   defaultExpanded?: boolean;
+  toolCalls: Array<any>;
 }
 
-export function Reasoning({ title, content, defaultExpanded = true }: ReasoningProps) {
+export function Message({ title, content, defaultExpanded = true, toolCalls }: ReasoningProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   if (!content) return null;
@@ -30,6 +31,9 @@ export function Reasoning({ title, content, defaultExpanded = true }: ReasoningP
       {isExpanded && (
         <Text className="text-xs text-gray-600">{content}</Text>
       )}
+
+      <ToolCalls functions={toolCalls} />
+
     </View>
   );
-} 
+}

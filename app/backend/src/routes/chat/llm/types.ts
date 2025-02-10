@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 export interface Position {
   x: number;
@@ -42,23 +43,9 @@ export interface Scene {
 }
 
 export interface GenerateResult {
-  json: {
-    objects: any[];
-    scene: {
-      rotation: Position;
-    };
-  };
-  reasoning: string;
-  messageId: string;
   stl: string;
   scad: string;
-  errors?: string[];
-  toolCalls?: {
-    name: string;
-    args: any;
-    result?: any;
-    error?: string;
-  }[];
+  messages: ChatCompletionMessageParam[];
 }
 
 export interface AuthenticatedRequest extends Request {

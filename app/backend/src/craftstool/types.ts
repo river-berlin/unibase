@@ -16,4 +16,4 @@ export interface BaseObject {
         y: number;
         z: number;
     };
-} 
+}

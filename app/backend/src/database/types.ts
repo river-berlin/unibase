@@ -58,10 +58,11 @@ export interface Database {
   messages: {
     id: string;
     conversation_id: string;
-    role: 'user' | 'assistant' | 'system';
+    role: 'user' | 'assistant' | 'system' | 'tool';
     content: string;
     tool_calls: string | null;
-    tool_outputs: string | null;
+    tool_call_id: string | null;
+    tool_output: string | null;
     input_tokens_used: number | null;
     output_tokens_used: number | null;
     error: string | null;

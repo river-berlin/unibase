@@ -78,7 +78,7 @@ export function useChatLogic(
             role: 'assistant',
             content: response.data.reasoning,
             tool_calls: JSON.stringify(response.data.toolCalls),
-            tool_outputs: JSON.stringify(response.data.json.objects),
+            tool_outputs: JSON.stringify(response.data.json?.objects),
             object_id: null,
             created_at: new Date().toISOString(),
             error: response.data.errors ? JSON.stringify(response.data.errors) : null
