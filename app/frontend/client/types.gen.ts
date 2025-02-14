@@ -1307,9 +1307,6 @@ export type GenerateObjectsResponse = GenerateObjectsResponses[keyof GenerateObj
 
 export type GetChatHistoryData = {
     body?: never;
-    headers?: {
-        authorization?: string;
-    };
     path: {
         /**
          * ID of the project to get history for
@@ -1322,10 +1319,6 @@ export type GetChatHistoryData = {
 
 export type GetChatHistoryErrors = {
     /**
-     * Unauthorized
-     */
-    401: unknown;
-    /**
      * Internal Server Error
      */
     500: unknown;
@@ -1337,12 +1330,20 @@ export type GetChatHistoryResponses = {
      */
     200: Array<{
         id?: string;
-        role?: 'user' | 'assistant';
+        role?: 'user' | 'assistant' | 'tool';
         content?: string;
-        tool_calls?: string | null;
-        tool_outputs?: string | null;
+        tool_calls?: Array<{
+            id?: string;
+            type?: 'function';
+            function?: {
+                name?: string;
+                arguments?: string;
+            };
+        }> | null;
+        tool_call_id?: string | null;
         object_id?: string | null;
         created_at?: string;
+        error?: string | null;
     }>;
 };
 

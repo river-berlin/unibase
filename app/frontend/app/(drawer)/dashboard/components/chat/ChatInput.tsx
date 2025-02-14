@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, TextInput, TouchableOpacity, ActivityIndicator, Switch, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ChatInputProps {
@@ -7,9 +7,18 @@ interface ChatInputProps {
   onChangeText: (text: string) => void;
   onSend: () => void;
   isLoading: boolean;
+  keepInput: boolean;
+  onKeepInputChange: (value: boolean) => void;
 }
 
-export function ChatInput({ value, onChangeText, onSend, isLoading }: ChatInputProps) {
+export function ChatInput({ 
+  value, 
+  onChangeText, 
+  onSend, 
+  isLoading,
+  keepInput,
+  onKeepInputChange 
+}: ChatInputProps) {
   return (
     <View className="p-4 border-b border-gray-200 bg-white">
       <View className="flex-row items-center">
@@ -33,6 +42,14 @@ export function ChatInput({ value, onChangeText, onSend, isLoading }: ChatInputP
             <Ionicons name="arrow-forward" size={23} color="black" />
           )}
         </TouchableOpacity>
+      </View>
+      <View className="flex-row items-center justify-end mt-2">
+        <Text className="text-xs text-gray-600 mr-2">Keep input after send</Text>
+        <Switch
+          value={keepInput}
+          onValueChange={onKeepInputChange}
+          trackColor={{ false: '#767577', true: '#81b0ff' }}
+        />
       </View>
     </View>
   );

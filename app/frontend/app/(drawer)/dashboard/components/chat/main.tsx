@@ -12,10 +12,13 @@ interface ChatProps {
 export function Chat({ projectId, onStlUpdate }: ChatProps) {
   const [{ messages, isLoading }, { sendMessage }] = useChatLogic(projectId, onStlUpdate);
   const [instruction, setInstruction] = useState('');
+  const [keepInput, setKeepInput] = useState(false);
 
   const handleSend = async () => {
     await sendMessage(instruction);
-    setInstruction('');
+    if (!keepInput) {
+      setInstruction('');
+    }
   };
 
   return (
@@ -25,6 +28,8 @@ export function Chat({ projectId, onStlUpdate }: ChatProps) {
         onChangeText={setInstruction}
         onSend={handleSend}
         isLoading={isLoading}
+        keepInput={keepInput}
+        onKeepInputChange={setKeepInput}
       />
       <View className="flex-1">
         <ChatHistory messages={messages} />

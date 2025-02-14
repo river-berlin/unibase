@@ -1,6 +1,5 @@
-import { Router, Response } from 'express';
-import { authenticateToken } from '../../middleware/auth';
-import { AuthenticatedRequest } from './llm/types';
+import { Router } from 'express';
+import { getHistoricalMessages } from './llm/helpers/history';
 
 const router = Router();
 
@@ -9,102 +8,72 @@ const router = Router();
  * 
  * @route GET /chat/llm/:projectId/history
  */
-router.get('/:projectId/history', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/:projectId/history', async (req, res) => {
   /* #swagger.tags = ['Chat']
-     #swagger.operationId = 'getChatHistory'
-     #swagger.summary = 'Get chat history for a project'
-     #swagger.description = 'Returns the conversation history including messages and generated objects'
-     #swagger.security = [{
-       "bearerAuth": []
-     }]
-     #swagger.parameters['projectId'] = {
-       in: 'path',
-       description: 'ID of the project to get history for',
-       required: true,
-       type: 'string',
-       format: 'uuid'
-     }
-     #swagger.responses[200] = {
-       description: 'Chat history retrieved successfully',
-       content: {
-         'application/json': {
-           schema: {
-             type: 'array',
-             items: {
-               type: 'object',
-               properties: {
-                 id: { type: 'string', format: 'uuid' },
-                 role: { type: 'string', enum: ['user', 'assistant'] },
-                 content: { type: 'string' },
-                 tool_calls: { type: 'string', nullable: true },
-                 tool_outputs: { type: 'string', nullable: true },
-                 object_id: { type: 'string', format: 'uuid', nullable: true },
-                 created_at: { type: 'string', format: 'date-time' }
-               }
-             }
-           }
-         }
-       }
-     }
+      #swagger.operationId = 'getChatHistory'
+      #swagger.summary = 'Get chat history for a project'
+      #swagger.description = 'Returns the conversation history including messages and generated objects'
+      #swagger.security = [{
+        "bearerAuth": []
+      }]
+      #swagger.parameters['projectId'] = {
+        in: 'path',
+        description: 'ID of the project to get history for',
+        required: true,
+        type: 'string',
+        format: 'uuid'
+      }
+      #swagger.responses[200] = {
+        description: 'Chat history retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  role: { type: 'string', enum: ['user', 'assistant', 'tool'] },
+                  content: { type: 'string' },
+                  tool_calls: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        type: { type: 'string', enum: ['function'] },
+                        function: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string' },
+                            arguments: { type: 'string' }
+                          }
+                        }
+                      }
+                    },
+                    nullable: true
+                  },
+                  tool_call_id: { type: 'string', nullable: true },
+                  object_id: { type: 'string', format: 'uuid', nullable: true },
+                  created_at: { type: 'string', format: 'date-time' },
+                  error: { type: 'string', nullable: true }
+                }
+              }
+            }
+          }
+        }
+      }
   */
+  const db = req.app.locals.db;
   try {
-    const db = req.app.locals.db;
-
-    // Verify project exists and user has access
-    const project = await db
-      .selectFrom('projects')
-      .select(['organization_id'])
-      .where('id', '=', req.params.projectId)
-      .executeTakeFirst();
-
-    if (!project) {
-      res.status(404).json({ error: 'Project not found' });
-      return;
-    }
-
-    // Check organization access
-    const hasAccess = await db
-      .selectFrom('organization_members')
-      .select('user_id')
-      .where('organization_id', '=', project.organization_id)
-      .where('user_id', '=', req.user!.userId)
-      .executeTakeFirst();
-
-    if (!hasAccess) {
-      res.status(403).json({ error: 'No access to this project' });
-      return;
-    }
-
-    // Get messages from active conversation
-    const messages = await db
-      .selectFrom('messages')
-      .innerJoin('conversations', 'conversations.id', 'messages.conversation_id')
-      .select([
-        'messages.id',
-        'messages.role',
-        'messages.content',
-        'messages.conversation_id',
-        'messages.tool_calls',
-        'messages.tool_call_id',
-        'messages.tool_output',
-        'messages.object_id',
-        'messages.created_at',
-        'messages.updated_at',
-        'messages.error',
-      ])
-      .where('conversations.project_id', '=', req.params.projectId)
-      .where('conversations.status', '=', 'active')
-      .orderBy('messages.created_at', 'asc')
-      .execute();
-
+    const projectId = req.params.projectId;
+    const messages = await getHistoricalMessages(projectId, db);
+    
     res.json(messages);
   } catch (error) {
-    console.error('Error fetching chat history:', error);
-    res.status(500).json({ 
-      error: 'Error fetching chat history',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Error getting chat history:', error);
+    res.status(500).json({ error: 'Error getting chat history' });
   }
 });
 
-export default router; 
+export default router;

@@ -3,13 +3,20 @@ import { useState, useEffect } from 'react';
 
 export interface Message {
   id?: string;
-  role: 'user' | 'assistant';
-  content: string | undefined;
-  tool_calls: string | null;
-  tool_outputs: string | null;
-  object_id: string | null;
-  created_at: string;
-  error: string | null;
+  role: 'user' | 'assistant' | 'tool';
+  content: string | Array<any> | undefined;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+  tool_call_id?: string;
+  object_id?: string | null;
+  created_at?: string;
+  error?: string | null;
 }
 
 interface ChatState {
@@ -59,34 +66,28 @@ export function useChatLogic(
         path: { projectId }
       });
 
-      if (response.data) {
-        // Update messages
-        setMessages([
-          ...messages,
-          {
+      console.log('response', response);
+
+      if (response.data?.messages) {
+        // Update with all messages from response
+        setMessages(prevMessages => [
+          ...prevMessages,
+          ...response.data.messages.map(msg => ({
             id: crypto.randomUUID(),
-            role: 'user',
-            content: instruction,
-            tool_calls: null,
-            tool_outputs: null,
-            object_id: null,
+            role: msg.role,
+            content: msg.content,
+            tool_calls: msg.tool_calls,
+            tool_call_id: msg.tool_call_id,
+            object_id: msg.object_id,
             created_at: new Date().toISOString(),
             error: null
-          },
-          {
-            id: response.data.messageId,
-            role: 'assistant',
-            content: response.data.reasoning,
-            tool_calls: JSON.stringify(response.data.toolCalls),
-            tool_outputs: JSON.stringify(response.data.json?.objects),
-            object_id: null,
-            created_at: new Date().toISOString(),
-            error: response.data.errors ? JSON.stringify(response.data.errors) : null
-          }
+          }))
         ]);
 
-        // Update STL
-        onStlUpdate(response.data.stl);
+        // Update STL if present
+        if (response.data.stl) {
+          onStlUpdate(response.data.stl);
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);

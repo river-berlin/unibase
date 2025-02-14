@@ -224,7 +224,6 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
   try {
     const { 
       instructions, 
-      sceneRotation = { x: 0, y: 0, z: 0 }
     } = req.body;
 
     if (!instructions) {
@@ -233,6 +232,7 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
       });
       return;
     }
+
 
     if (!req.user?.userId) {
       res.status(401).json({ 
@@ -283,7 +283,6 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
 
     const result = await generateObjects(
       instructions,
-      sceneRotation,
       latestObject?.object || null, // Pass the SCAD content instead of JSON
       req.params.projectId,
       req.user.userId,
