@@ -5,14 +5,18 @@ import { Message } from './messages/Message';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'tool';
-  content: string;
+  content: Array<{
+    type: string;
+    text?: string;
+    image_url?: {
+      url: string;
+    };
+  }>;
   toolCalls: Array<any>;
   toolCallId?: string;
-  toolOutput?: string;
-  error?: string;
 }
 
-export function ChatMessage({ role, content, toolCalls, toolCallId, toolOutput, error }: ChatMessageProps) {
+export function ChatMessage({ role, content, toolCalls, toolCallId }: ChatMessageProps) {
   return (
     <View className="p-3 bg-white">
       <View className="flex-row items-center mb-2">
@@ -41,7 +45,9 @@ export function ChatMessage({ role, content, toolCalls, toolCallId, toolOutput, 
             <Message title="Message" content={content} defaultExpanded={true} toolCalls={toolCalls} />
           </>
         ) : (
-          <Text className="text-sm text-gray-800">{content}</Text>
+          <>
+          <Message title="Message" content={content} defaultExpanded={true} toolCalls={toolCalls} />
+        </>
         )}
       </View>
     </View>

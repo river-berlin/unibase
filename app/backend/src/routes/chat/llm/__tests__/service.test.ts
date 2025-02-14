@@ -82,7 +82,6 @@ describe('OpenAI Service - cuboid', () => {
 
     const result = await generateObjects(
       instructions,
-      { x: 0, y: 0, z: 0 },
       undefined,
       projectId,
       userId,
@@ -91,8 +90,6 @@ describe('OpenAI Service - cuboid', () => {
     );
 
     if(!('tool_calls' in result.messages[2])) {
-      console.log(result.messages[0]);
-      console.log(result.messages[1]);
       throw new Error('tool_calls not found in result.messages[1] are you sure it is an assistant message? - message: ' + JSON.stringify(result.messages[1]));
     }
     // Check result
@@ -169,7 +166,6 @@ describe('OpenAI Service - cuboid', () => {
 
     await generateObjects(
       'create a cube',
-      { x: 0, y: 0, z: 0 },
       undefined,
       projectId,
       userId,

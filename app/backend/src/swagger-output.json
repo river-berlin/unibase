@@ -2674,13 +2674,6 @@
             },
             "description": "ID of the project to get history for",
             "format": "uuid"
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2701,17 +2694,43 @@
                         "type": "string",
                         "enum": [
                           "user",
-                          "assistant"
+                          "assistant",
+                          "tool"
                         ]
                       },
                       "content": {
                         "type": "string"
                       },
                       "tool_calls": {
-                        "type": "string",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "function"
+                              ]
+                            },
+                            "function": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "arguments": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
                         "nullable": true
                       },
-                      "tool_outputs": {
+                      "tool_call_id": {
                         "type": "string",
                         "nullable": true
                       },
@@ -2723,15 +2742,16 @@
                       "created_at": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "error": {
+                        "type": "string",
+                        "nullable": true
                       }
                     }
                   }
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           },
           "500": {
             "description": "Internal Server Error"
