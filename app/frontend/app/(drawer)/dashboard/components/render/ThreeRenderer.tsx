@@ -2,13 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Platform, ActivityIndicator, Text } from 'react-native';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { setupLighting } from './setupLighting';
+import { setupCamera, updateCameraAspect, getRenderImage, CameraState } from './setupCamera';
+import { setupFloor, loadSTLObject } from './setupObject';
 
 interface ThreeRendererProps {
   stlData: string | null;
+  setScene: (sceneImage: string) => void;
 }
 
-export function ThreeRenderer({ stlData }: ThreeRendererProps) {
+export function ThreeRenderer({ stlData, setScene }: ThreeRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isLoading, setIsLoading] = useState(false);
@@ -17,77 +20,7 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
   const controlsRef = useRef<OrbitControls | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const cameraStateRef = useRef<{
-    position: THREE.Vector3;
-    target: THREE.Vector3;
-  } | null>(null);
-  
-  const loadSTL = (stlText: string) => {
-    if (!sceneRef.current || !cameraRef.current || !controlsRef.current) return;
-
-    // Store current camera and controls state before loading new STL
-    if (meshRef.current) {
-      cameraStateRef.current = {
-        position: cameraRef.current.position.clone(),
-        target: controlsRef.current.target.clone()
-      };
-    }
-
-    // Remove existing mesh
-    if (meshRef.current) {
-      sceneRef.current.remove(meshRef.current);
-      meshRef.current = null;
-    }
-
-    if (stlText.trim() === '') {
-      return;
-    }
-
-    const loader = new STLLoader();
-    const geometry = loader.parse(stlText);
-    
-    // Center the geometry
-    geometry.center();
-    
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x87ceeb,
-      shininess: 30,
-      flatShading: true
-    });
-    
-    meshRef.current = new THREE.Mesh(geometry, material);
-    meshRef.current.castShadow = true;
-    meshRef.current.receiveShadow = true;
-    
-    sceneRef.current.add(meshRef.current);
-
-    // Adjust camera to fit the mesh only if no previous state exists
-    if (!cameraStateRef.current) {
-      const box = new THREE.Box3().setFromObject(meshRef.current);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      
-      // Calculate camera distance based on object size
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const fov = cameraRef.current.fov;
-      const cameraDistance = (maxDim * 1.5) / Math.tan((fov * Math.PI) / 360);
-      
-      // Position camera at an isometric view
-      const cameraX = center.x + cameraDistance * Math.cos(Math.PI / 4);
-      const cameraY = center.y + cameraDistance * Math.sin(Math.PI / 4);
-      const cameraZ = center.z + cameraDistance;
-      
-      cameraRef.current.position.set(cameraX, cameraY, cameraZ);
-      cameraRef.current.lookAt(center);
-      controlsRef.current.target.copy(center);
-    } else {
-      // Restore previous camera and controls state
-      cameraRef.current.position.copy(cameraStateRef.current.position);
-      controlsRef.current.target.copy(cameraStateRef.current.target);
-    }
-    
-    controlsRef.current.update();
-  };
+  const cameraStateRef = useRef<CameraState | null>(null);
 
   // Handle container size changes
   useEffect(() => {
@@ -97,22 +30,18 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
 
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
-        // Clear existing timeout
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
 
-        // Set new timeout
         timeoutId = setTimeout(() => {
           const { width, height } = entry.contentRect;
           setContainerSize({ width, height });
           
           if (cameraRef.current && rendererRef.current) {
-            cameraRef.current.aspect = width / height;
-            cameraRef.current.updateProjectionMatrix();
-            rendererRef.current.setSize(width, height);
+            updateCameraAspect(cameraRef.current, rendererRef.current, width, height);
           }
-        }, 100); // 0.1 second delay
+        }, 100);
       }
     });
 
@@ -134,40 +63,11 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     sceneRef.current = scene;
     scene.background = new THREE.Color(0xffffff);
 
-    // Add floor plane
-    const planeGeometry = new THREE.PlaneGeometry(50, 50);
-    const planeMaterial = new THREE.MeshPhongMaterial({
-      color: 0xcccccc,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.5,
-    });
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.y = -0.5;
-    plane.receiveShadow = true;
-    scene.add(plane);
+    // Set up floor
+    setupFloor(scene);
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 5, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    scene.add(directionalLight);
-
-    // Set up camera
-    const camera = new THREE.PerspectiveCamera(
-      30,
-      containerSize.width / containerSize.height,
-      0.1,
-      10000
-    );
-    camera.position.set(50, 50, 50);
-    cameraRef.current = camera;
+    // Set up lights
+    setupLighting(scene);
 
     // Set up renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -177,10 +77,9 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Set up controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    // Set up camera and controls
+    const { camera, controls } = setupCamera(containerSize.width, containerSize.height, renderer);
+    cameraRef.current = camera;
     controlsRef.current = controls;
 
     // Animation loop
@@ -192,14 +91,32 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
     };
     animate();
 
+    // Capture scene every second
+    const captureInterval = setInterval(() => {
+      if (renderer && scene && camera) {
+        const image = getRenderImage(renderer, scene, camera);
+        setScene(image);
+      }
+    }, 100);
+
     // Load STL if available
     if (stlData) {
-      loadSTL(stlData);
+      const { mesh, cameraState } = loadSTLObject(
+        stlData,
+        scene,
+        camera,
+        controls,
+        meshRef.current,
+        cameraStateRef.current
+      );
+      meshRef.current = mesh;
+      cameraStateRef.current = cameraState;
     }
 
     // Cleanup
     return () => {
       cancelAnimationFrame(animationFrameId);
+      clearInterval(captureInterval);
       renderer.dispose();
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
@@ -209,10 +126,20 @@ export function ThreeRenderer({ stlData }: ThreeRendererProps) {
 
   // Update when STL data changes
   useEffect(() => {
+    if (!sceneRef.current || !cameraRef.current || !controlsRef.current) return;
+
     if (stlData) {
-      loadSTL(stlData);
+      const { mesh, cameraState } = loadSTLObject(
+        stlData,
+        sceneRef.current,
+        cameraRef.current,
+        controlsRef.current,
+        meshRef.current,
+        cameraStateRef.current
+      );
+      meshRef.current = mesh;
+      cameraStateRef.current = cameraState;
     } else if (sceneRef.current && meshRef.current) {
-      // Clear the scene when no STL data is provided
       sceneRef.current.remove(meshRef.current);
       meshRef.current = null;
     }
