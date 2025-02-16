@@ -7,16 +7,22 @@ import { CuboidObject } from './types';
  * @returns A string describing the added object
  */
 export const func = async (object_details: any, lmparams: any) => {
-    const { width, height, depth, objectId = undefined } = lmparams;
-    const id = objectId || ("object_" + (object_details.length + 1).toString());
+    const { width, height, depth, objectId } = lmparams;
 
     const object: CuboidObject = {
         type: 'cuboid',
-        objectId: id,
+        objectId,
         position: { x: 0, y: 0, z: 0 },
         dimensions: { width, height, depth },
         rotation: { x: 0, y: 0, z: 0 }
     };
-    object_details.push(object);
-    return "added cuboid: " + JSON.stringify(object);
+
+    const existingIndex = object_details.findIndex((obj: any) => obj.objectId === objectId);
+    if (existingIndex !== -1) {
+        object_details[existingIndex] = object;
+        return `replaced cuboid with id ${objectId}: ${JSON.stringify(object)}`;
+    } else {
+        object_details.push(object);
+        return `added new cuboid: ${JSON.stringify(object)}`;
+    }
 }; 

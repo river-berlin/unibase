@@ -1,9 +1,9 @@
 /**
- * OpenAI function declaration for adding cylinders
+ * OpenAI function declaration for adding or replacing cylinders
  */
 export const tool = {
     name: 'add_cylinder',
-    description: 'Adds a cylinder at the origin position (0,0,0) with specified radius and height',
+    description: 'Adds a new cylinder or replaces an existing one at the origin position (0,0,0). If an object with the specified objectId exists, it will be replaced; otherwise, a new cylinder will be added.',
     parameters: {
         type: 'object',
         properties: {
@@ -17,7 +17,7 @@ export const tool = {
             },
             objectId: {
                 type: 'string',
-                description: 'ID for the cylinder. This must be unique, something creative and super unique',
+                description: 'ID for the cylinder. If an object with this ID already exists, it will be replaced. Must be unique if creating a new cylinder.',
             }
         },
         additionalProperties: false,

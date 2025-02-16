@@ -59,7 +59,7 @@ export interface Database {
     id: string;
     conversation_id: string;
     role: 'user' | 'assistant' | 'system' | 'tool';
-    content: string;
+    content: string | null;
     tool_calls: string | null;
     tool_call_id: string | null;
     tool_output: string | null;

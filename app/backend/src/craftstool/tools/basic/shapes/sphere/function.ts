@@ -1,10 +1,10 @@
 import { SphereObject } from './types';
 
 /**
- * Creates a new sphere object and adds it to the scene
+ * Creates a new sphere object or replaces an existing one in the scene
  * @param object_details - Array of existing objects in the scene
- * @param lmparams - Parameters for the new sphere
- * @returns A string describing the added object
+ * @param lmparams - Parameters for the sphere
+ * @returns A string describing the added or replaced object
  */
 export const func = async (object_details: any, lmparams: any) => {
     const { radius, objectId = undefined } = lmparams;
@@ -17,6 +17,17 @@ export const func = async (object_details: any, lmparams: any) => {
         radius,
         rotation: { x: 0, y: 0, z: 0 }
     };
-    object_details.push(object);
-    return "added sphere: " + JSON.stringify(object);
+
+    // Find existing object index
+    const existingIndex = object_details.findIndex((obj: any) => obj.objectId === id);
+    
+    if (existingIndex !== -1) {
+        // Replace existing object
+        object_details[existingIndex] = object;
+        return "replaced sphere: " + JSON.stringify(object);
+    } else {
+        // Add new object
+        object_details.push(object);
+        return "added sphere: " + JSON.stringify(object);
+    }
 }; 
