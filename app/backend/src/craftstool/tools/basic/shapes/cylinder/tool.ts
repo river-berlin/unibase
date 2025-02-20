@@ -2,7 +2,7 @@
  * OpenAI function declaration for adding or replacing cylinders
  */
 export const tool = {
-    name: 'add_cylinder',
+    name: 'add_or_replace_cylinder',
     description: 'Adds a new cylinder or replaces an existing one at the origin position (0,0,0). If an object with the specified objectId exists, it will be replaced; otherwise, a new cylinder will be added.',
     parameters: {
         type: 'object',
