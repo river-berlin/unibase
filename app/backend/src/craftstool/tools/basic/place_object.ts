@@ -1,7 +1,11 @@
 export const placeObject = async (object_details: any, lmparams: any) => {
     const { objectId, x, y, z } = lmparams;
     // loop through the object_details and find the object with the given objectId
+    // if it doesn't exist, throw an error
     const object = object_details.find((obj: any) => obj.objectId === objectId);
+    if (!object) {
+        throw new Error(`No object found with ID: ${objectId}`);
+    }
     object.position = { x, y, z };
     return "placed object: " + JSON.stringify(object);
 };
