@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { setupLighting } from './setupLighting';
 import { setupCamera, updateCameraAspect, getRenderImage, CameraState } from './setupCamera';
 import { setupFloor, loadSTLObject } from './setupObject';
+import { setupCoordinateArrows } from './setupCoordinateArrows';
 
 interface ThreeRendererProps {
   stlData: string | null;
@@ -21,6 +22,7 @@ export function ThreeRenderer({ stlData, setScene }: ThreeRendererProps) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const cameraStateRef = useRef<CameraState | null>(null);
+
 
   // Handle container size changes
   useEffect(() => {
@@ -82,12 +84,16 @@ export function ThreeRenderer({ stlData, setScene }: ThreeRendererProps) {
     cameraRef.current = camera;
     controlsRef.current = controls;
 
+    // Set up coordinate arrows
+    const updateArrows = setupCoordinateArrows(scene, camera);
+
     // Animation loop
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
+      updateArrows(); // Update arrows position
     };
     animate();
 
@@ -97,7 +103,7 @@ export function ThreeRenderer({ stlData, setScene }: ThreeRendererProps) {
         const image = getRenderImage(renderer, scene, camera);
         setScene(image);
       }
-    }, 100);
+    }, 500);
 
     // Load STL if available
     if (stlData) {
