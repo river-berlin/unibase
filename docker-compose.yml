@@ -1,13 +1,14 @@
 services:
   frontend:
     build:
-      context: ./app/frontend
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "8081:8081"
     volumes:
-      - ./app/frontend:/app
-      - ./app/backend:/backend
+      - ./frontend:/app
+      - ./backend:/backend
+      - ./database:/database
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - EXPO_PUBLIC_API_URL=http://localhost:3002
@@ -16,17 +17,18 @@ services:
 
   backend:
     build:
-      context: ./app/backend
+      context: ./backend
       dockerfile: Dockerfile
     ports:
       - "3002:3002"
     volumes:
-      - ./app/backend:/app
+      - ./backend:/app
+      - ./database:/database
       - sqlite-data:/data
     environment:
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}  
-      - OPENAI_MODEL=${OPENAI_MODEL}
+      - CLAUDE_BASE_URL=${CLAUDE_BASE_URL}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}  
+      - CLAUDE_MODEL=${CLAUDE_MODEL}
       - PORT=3002
       - NODE_ENV=${NODE_ENV:-development}
       - JWT_SECRET=${JWT_SECRET}

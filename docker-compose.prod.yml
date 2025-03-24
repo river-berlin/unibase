@@ -8,9 +8,9 @@ services:
       args:
         - NODE_ENV=production
     environment:
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}  
-      - OPENAI_MODEL=${OPENAI_MODEL}
+      - CLAUDE_BASE_URL=${CLAUDE_BASE_URL}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}  
+      - CLAUDE_MODEL=${CLAUDE_MODEL}
       - PORT=3002
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
