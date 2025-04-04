@@ -5,10 +5,16 @@ import { ThreeRenderer } from './components/render/ThreeRenderer';
 import { Chat } from './components/chat/main';
 import { getProjectWithFolderInfo } from '~/client';
 import { useProject } from "~/app/atoms/project"
+import { initStlExporter } from './components/js-to-stl-logic/StlExporter';
 
 export default function ProjectPage() {
   const { id } = useLocalSearchParams();
   const { setProject } = useProject();
+
+  // This basically sets up an iframe
+  // for generating STL files using js code
+  // it's sandboxed for security
+  initStlExporter();
 
   useEffect(() => {
     // Skip if id is not a string or is empty

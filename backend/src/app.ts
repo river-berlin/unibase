@@ -11,17 +11,14 @@ import { errorHandler } from './middleware/error';
 import { setupCors } from './middleware/cors';
 import { db as defaultDb,  DB} from './database/db';
 import webhookRouter from './routes/billing/webhook';
-import Anthropic from '@anthropic-ai/sdk';
 import { authenticateToken } from './middleware/auth';
 
 interface AppServices {
   db?: DB;
-  anthropic?: Anthropic;
 }
 
 export function createApp({ 
-  db = defaultDb,
-  anthropic
+  db = defaultDb
 }: AppServices = {}): Express {
   const app = express();
 
@@ -51,7 +48,6 @@ export function createApp({
 
   // Set instances in app locals for route handlers to access
   app.locals.db = db;
-  app.locals.anthropic = anthropic;
 
 
   // webhook router must be put seperately due to 

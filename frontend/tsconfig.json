@@ -20,5 +20,8 @@
     "expo-env.d.ts",
     "nativewind-env.d.ts",
     "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "app/(drawer)/dashboard/components/js-to-stl-logic/helpers/basics.ts"
   ]
 }

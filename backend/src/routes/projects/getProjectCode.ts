@@ -44,7 +44,9 @@ router.get('/:projectId/code', async (req: GetProjectCodeRequest, res: Response)
                      object: { type: 'string', description: 'The JavaScript object content' },
                      created_at: { type: 'string', format: 'date-time', description: 'Timestamp when the object was created' },
                      updated_at: { type: 'string', format: 'date-time', description: 'Timestamp when the object was last updated' },
-                     project_id: { type: 'string', description: 'ID of the project this object belongs to' }
+                     project_id: { type: 'string', description: 'ID of the project this object belongs to' },
+                     filename: { type: 'string', description: 'Filename of the object' },
+                     filepath: { type: 'string', description: 'Filepath of the object' }
                    }
                  }
                }

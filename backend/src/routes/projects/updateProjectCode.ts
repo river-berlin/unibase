@@ -9,6 +9,8 @@ interface UpdateProjectCodeRequest extends Request {
   body: {
     object: string;
     id?: string;
+    filename?: string;
+    filepath?: string;
   };
 }
 
@@ -46,6 +48,14 @@ router.put('/:projectId/code', async (req: UpdateProjectCodeRequest, res: Respon
                id: {
                  type: 'string',
                  description: 'Optional ID of an existing object to update'
+               },
+               filename: {
+                 type: 'string',
+                 description: 'Optional filename for the code object'
+               },
+               filepath: {
+                 type: 'string',
+                 description: 'Optional filepath for the code object'
                }
              }
            }
@@ -83,6 +93,14 @@ router.put('/:projectId/code', async (req: UpdateProjectCodeRequest, res: Respon
                    project_id: {
                      type: 'string',
                      description: 'The project ID'
+                   },
+                   filename: {
+                     type: 'string',
+                     description: 'Filename of the object'
+                   },
+                   filepath: {
+                     type: 'string',
+                     description: 'Filepath of the object'
                    }
                  }
                }
@@ -126,21 +144,27 @@ router.put('/:projectId/code', async (req: UpdateProjectCodeRequest, res: Respon
       if (existingObject) {
         // Update existing object if it exists
         updatedObject = await Objects.updateObject(objectId, {
-          object: req.body.object
+          object: req.body.object,
+          filename: req.body.filename,
+          filepath: req.body.filepath
         }, db);
       } else {
         // Create a new object with the provided UUID if it doesn't exist
         updatedObject = await Objects.createObject({
           id: objectId, // Use the provided UUID
           object: req.body.object,
-          project_id: req.params.projectId
+          project_id: req.params.projectId,
+          filename: req.body.filename,
+          filepath: req.body.filepath
         }, db);
       }
     } else {
       // Create a new object with a generated UUID if none is provided
       updatedObject = await Objects.createObject({
         object: req.body.object,
-        project_id: req.params.projectId
+        project_id: req.params.projectId,
+        filename: req.body.filename,
+        filepath: req.body.filepath
       }, db);
     }
 

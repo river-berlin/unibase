@@ -1,10 +1,13 @@
 import { Router, Response, Request } from 'express';
 import { authenticateToken } from '../../../middleware/auth';
-import { generateObjects } from './service';
 import { AuthenticatedUser } from '../../../types';
 import Objects from '../../../database/models/objects';
 import Projects from '../../../database/models/projects';
 import OrganizationMembers from '../../../database/models/organization-members';
+import { Conversations } from '../../../database/models';
+import { createPrompt, createCompletion} from './helpers/promptGenerator';
+import Messages from '../../../database/models/messages';
+ 
 
 interface RequestBody {
   instructions: string;
@@ -13,6 +16,14 @@ interface RequestBody {
   sceneRotation?: any;
   manualJson?: any | null;
   base64Image: string;
+  objects?: Array<{
+    type: string;
+    params: Record<string, any>;
+    position?: { x: number; y: number; z: number };
+    rotation?: { x: number; y: number; z: number };
+    color?: string;
+    [key: string]: any;
+  }>;
 }
 
 interface AuthenticatedRequest extends Request {
@@ -24,7 +35,8 @@ interface AuthenticatedRequest extends Request {
 const router = Router();
 
 router.post('/:projectId/generate-objects', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  /* #swagger.tags = ['Chat']
+  /* 
+     #swagger.tags = ['Chat']
      #swagger.summary = 'Generate 3D objects based on natural language instructions'
      #swagger.description = 'Uses LLM-based AI models to generate 3D objects and scene state based on text instructions'
      #swagger.operationId = 'generateObjects'
@@ -38,34 +50,29 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
        type: 'string',
        format: 'uuid'
      }
-     #swagger.requestBody = {
-       required: true,
-       content: {
-         'application/json': {
-           schema: {
-             type: 'object',
-             required: ['instructions'],
-             properties: {
-               instructions: {
-                 type: 'string',
-                 description: 'Natural language instructions for generating 3D objects',
-                 example: 'Create a red cube floating above a blue sphere'
-               },
-               base64Image: {
-                 type: 'string',
-                 description: 'The base64 image of the rendered openscad',
-                 example : 'data:image/png;base64,...'
-               },
-               manualJson: {
-                 type: 'object',
-                 description: 'Optional manual JSON input to override generation',
-                 nullable: true
+       #swagger.requestBody = {
+         required: true,
+         content: {
+           'application/json': {
+             schema: {
+               type: 'object',
+               required: ['instructions'],
+               properties: {
+                 instructions: {
+                   type: 'string',
+                   minLength: 1,
+                   example: 'Create a 3D object based on the instructions'
+                 },
+                 base64Image: {
+                   type: 'string',
+                   format: 'base64',
+                   description: 'Base64 encoded image of the object'
+                 }
                }
              }
            }
          }
        }
-     }
      #swagger.responses[200] = {
        description: 'Objects generated successfully',
        content: {
@@ -73,76 +80,44 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
            schema: {
              type: 'object',
              properties: {
-               json: {
-                 type: 'object',
-                 description: 'Generated scene description',
-                 properties: {
-                   objects: {
-                     type: 'array',
-                     items: {
-                       type: 'object',
-                       properties: {
-                         type: {
-                           type: 'string',
-                           enum: ['cube', 'sphere', 'cylinder', 'polyhedron']
-                         },
-                         params: {
-                           type: 'object'
-                         },
-                         position: {
-                           type: 'object',
-                           properties: {
-                             x: { type: 'number' },
-                             y: { type: 'number' },
-                             z: { type: 'number' }
-                           }
-                         }
-                       }
-                     }
-                   },
-                   scene: {
-                     type: 'object',
-                     properties: {
-                       rotation: {
-                         type: 'object',
-                         properties: {
-                           x: { type: 'number' },
-                           y: { type: 'number' },
-                           z: { type: 'number' }
-                         }
-                       }
-                     }
-                   }
-                 }
-               },
-               reasoning: {
-                 type: 'string',
-                 description: 'Step-by-step reasoning for the generation'
-               },
                messageId: {
                  type: 'string',
                  format: 'uuid',
                  description: 'ID of the generated message in conversation'
                },
-               toolCalls: {
+               messages: {
                  type: 'array',
+                 description: 'Chat messages generated during the process',
                  items: {
-                   type: 'object'
+                   type: 'object',
+                   properties: {
+                     role: {
+                       type: 'string',
+                       enum: ['user', 'assistant', 'tool']
+                     },
+                     content: {
+                       type: 'string'
+                     },
+                     tool_calls: {
+                       type: 'array',
+                       items: {
+                         type: 'object'
+                       },
+                       nullable: true
+                     },
+                     tool_outputs: {
+                       type: 'array',
+                       items: {
+                         type: 'object'
+                       },
+                       nullable: true
+                     }
+                   }
                  }
                },
-               errors: {
-                 type: 'array',
-                 items: {
-                   type: 'string'
-                 }
-               },
-               stl: {
+               jsContent: {
                  type: 'string',
-                 description: 'STL file for the generated objects'
-               },
-               scad: {
-                 type: 'string',
-                 description: 'SCAD file for the generated objects'
+                 description: 'JavaScript/ThreeJS content for the generated objects'
                }
              }
            }
@@ -251,11 +226,9 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
 
   // Verify project exists and user has access
   const db = req.app.locals.db;
-  const anthropic = req.app.locals.anthropic;
-
-  // Get the latest object for this project if it exists
-  const latestObject = await Objects.findLatestByProject(req.params.projectId, db);
+  const objects = (await Objects.findByProject(req.params.projectId, db)) || [];
   const project = await Projects.findById(req.params.projectId, db);
+  const conversation = await Conversations.findActiveByProject(project.id, db);
 
   if (!project) {
     res.status(404).json({ error: 'Project not found' });
@@ -270,17 +243,12 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
     return;
   }
 
-  const result = await generateObjects(
-    instructions,
-    latestObject?.object || undefined,
-    req.params.projectId,
-    req.user.userId,
-    db,
-    anthropic,
-    base64Image
-  );
+  //const history = await Messages.getMessages(projectId, db);
+  const newUserMessage = createPrompt(instructions, conversation.id, req.user.userId, objects, base64Image);
+  const newMessages = await createCompletion([newUserMessage], conversation.id, req.user.userId);
+  await Messages.addMessages(newMessages, db);
 
-  res.json(result);
+  res.json({ messages : newMessages });
 });
 
 export default router; 

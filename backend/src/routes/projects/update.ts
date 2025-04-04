@@ -12,6 +12,9 @@ interface UpdateProjectRequest extends Request {
     description?: string;
     icon?: string;
     folder_id?: string | null;
+    use_for_training?: boolean;
+    already_trained?: boolean;
+    trained_at?: string;
   };
 }
 
@@ -28,13 +31,16 @@ router.put(
     body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
     body('description').optional().trim(),
     body('icon').optional().trim().isLength({ min: 1 }).withMessage('Icon cannot be empty'),
-    body('folder_id').optional().isString().withMessage('Invalid folder ID')
+    body('folder_id').optional().isString().withMessage('Invalid folder ID'),
+    body('use_for_training').optional().isBoolean().withMessage('use_for_training must be a boolean'),
+    body('already_trained').optional().isBoolean().withMessage('already_trained must be a boolean'),
+    body('trained_at').optional().isString().withMessage('trained_at must be a string')
   ],
   async (req: UpdateProjectRequest, res: Response): Promise<void> => {
     /* #swagger.tags = ['Projects']
        #swagger.summary = 'Update project details'
        #swagger.operationId = 'updateProjectAttributes'
-       #swagger.description = 'Updates project information including name, description, icon, and folder location'
+       #swagger.description = 'Updates project information including name, description, icon, folder location, and training status'
        #swagger.parameters['projectId'] = {
          in: 'path',
          description: 'ID of the project to update',
@@ -68,6 +74,21 @@ router.put(
                    format: 'uuid',
                    nullable: true,
                    description: 'New folder ID or null to move to root'
+                 },
+                 use_for_training: {
+                   type: 'boolean',
+                   description: 'Whether to use this project for training data',
+                   example: true
+                 },
+                 already_trained: {
+                   type: 'boolean',
+                   description: 'Whether this project has been used as training data',
+                   example: false
+                 },
+                 trained_at: {
+                   type: 'string',
+                   description: 'Timestamp when the project was used for training',
+                   example: '2025-04-05T10:30:00Z'
                  }
                }
              }
@@ -115,6 +136,10 @@ router.put(
                  folder_path: {
                    type: 'string',
                    nullable: true
+                 },
+                 use_for_training: {
+                   type: 'boolean',
+                   description: 'Whether this project is used for training data'
                  }
                }
              }
@@ -240,9 +265,12 @@ router.put(
     if (req.body.description !== undefined) updateData.description = req.body.description;
     if (req.body.icon !== undefined) updateData.icon = req.body.icon;
     if (req.body.folder_id !== undefined) updateData.folder_id = req.body.folder_id;
+    if (req.body.use_for_training !== undefined) updateData.use_for_training = req.body.use_for_training ? 1 : 0;
+    if (req.body.already_trained !== undefined) updateData.already_trained = req.body.already_trained;
+    if (req.body.trained_at !== undefined) updateData.trained_at = req.body.trained_at;
 
     // Update project using the Projects model
-    const updatedProject = await Projects.updateProject(
+    await Projects.updateProject(
       req.params.projectId,
       updateData,
       req.user.userId,

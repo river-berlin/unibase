@@ -7,7 +7,6 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import { createApp } from './app';
 import { db } from './database/db';
-import anthropic from './services/anthropic';
 
 // Log environment information
 console.log(`[${new Date().toISOString()}] Starting server...`);
@@ -16,7 +15,7 @@ console.log(`[${new Date().toISOString()}] Working directory: ${process.cwd()}`)
 console.log(`[${new Date().toISOString()}] Source directory: ${__dirname}`);
 
 const port: number = parseInt(process.env.PORT || '3002');
-const app = createApp({ db, anthropic });
+const app = createApp({ db });
 
 // Log all registered routes
 console.log(`[${new Date().toISOString()}] Registered routes:`);

@@ -1,31 +1,16 @@
-# VoiceCAD Backend
+# Unibase Backend
 
 <img src="readme-files/train.jpg" alt="a train" width="200" height="200">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Backend API service for VoiceCAD, handling user accounts, projects, and file storage.
+> Backend API service for Unibase, handling user accounts, projects, and 3D object storage.
 
 ## 🏗️ Tech Stack
 
 - Node.js/Express
-- SQLite with Prisma
-- LocalStack for S3 simulation
+- SQLite with Kysely
 - Docker
-
-## 📁 Project Structure
-
-```
-backend/
-├── src/
-│   ├── controllers/    # Route controllers
-│   ├── models/        # Prisma models
-│   ├── services/      # Business logic
-│   └── middleware/    # Express middleware
-├── prisma/
-│   └── schema.prisma  # Database schema
-└── tests/            # Integration & unit tests
-```
 
 ## 🚀 Getting Started
 
@@ -42,41 +27,38 @@ backend/
 
 2. The API will be available at `http://localhost:3000`
 
-## 📚 API Endpoints
-
-### User Management
-- `POST /api/users` - Create user
-- `DELETE /api/users/:id` - Delete user
-- `GET /api/users/:id` - Get user details
-
-### Project Management
-- `POST /api/projects` - Create project
-- `DELETE /api/projects/:id` - Delete project
-- `GET /api/projects` - List projects
-- `GET /api/projects/:id` - Get project details
-
-### File Management
-- `POST /api/files/upload` - Upload file
-- `DELETE /api/files/:id` - Delete file
-- `GET /api/files/:id` - Get file details
-
 ## ⚙️ Environment Variables
 
 The `.env` file is automatically configured in Docker. For local development:
 
 ```env
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="sqlite:///$(pwd)/dev.db"
 JWT_SECRET="your-secret-key"
-S3_ENDPOINT="http://localhost:4566"
-AWS_ACCESS_KEY_ID="test"
-AWS_SECRET_ACCESS_KEY="test"
 ```
 
-### Making migrations
+### Database Migrations
 
-we use dbmate to make migrations in the backend directory with something like
+We use dbmate to manage database migrations in the backend directory:
 
+```bash
+# Check migration status
 dbmate --url sqlite:///$(pwd)/dev.db -d ./src/database/migrations status
+
+# Create a new migration
+dbmate --url sqlite:///$(pwd)/dev.db -d ./src/database/migrations new add_your_migration_name
+
+# Apply all pending migrations
+dbmate --url sqlite:///$(pwd)/dev.db -d ./src/database/migrations up
+
+# Roll back the most recent migration
+dbmate --url sqlite:///$(pwd)/dev.db -d ./src/database/migrations down
+```
+
+**Important:** When updating a dbmate migration, 
+
+1. first, read the appropriate schema at `backend/db/schema.sql` before you make schema changes
+2. The corresponding model in `src/database/models/` must also be updated to maintain consistency between the database schema and the application code.
+3. The corresponding file in `src/database_schema.md` also needs to be updated to have a nice represent
 
 ## 📝 License
 

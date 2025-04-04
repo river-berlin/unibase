@@ -1,36 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Toggle } from './Toggle';
 import { sendMessage } from './logic';
 import { useSceneImage } from '~/app/atoms';
+import { useProject } from '~/app/atoms';
+import { useCode } from '~/app/atoms';
+import { useChatMessages } from '~/app/atoms';
+import { fetchCode } from './logic';
 
 interface ChatInputProps {
-  value: string;
-  onChangeText: (text: string) => void;
   keepInput: boolean;
   onKeepInputChange: (value: boolean) => void;
   className?: string;
 }
 
-export function ChatInput({ 
-  value, 
-  onChangeText, 
+export function ChatInput({
   keepInput,
   onKeepInputChange,
   className = ''
 }: ChatInputProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [value, setValue] = useState("");
+
   const { sceneImage } = useSceneImage();
+  const {project} = useProject();
+  const {messages, setAllMessages} = useChatMessages();
+  const {setCode} = useCode();
 
   const onPressSend = async () => {
+    if (!project) return;
     if (!value.trim() || isLoading) return;
     
     setIsLoading(true);
-    await sendMessage(value, sceneImage);
-    
+    const newMessages = await sendMessage(project.id, value, sceneImage);
+    setAllMessages([...messages, ...newMessages]);
+
+    const code = await fetchCode(project.id);
+    setCode(code);
+
+
     if (!keepInput) {
-      onChangeText('');
+      setValue('');
     }
     
     setIsLoading(false);
@@ -43,7 +54,7 @@ export function ChatInput({
           className="flex-1 p-2 mr-2 border border-gray-300 rounded"
           placeholder="Enter instructions..."
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={setValue}
           multiline
           numberOfLines={1}
           editable={!isLoading}

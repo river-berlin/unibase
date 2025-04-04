@@ -6,11 +6,11 @@ import { db, DB } from '../db';
  * Conversation data interface
  */
 export interface ConversationData {
-  id?: string;
+  id: string;
   project_id: string;
   model: string;
-  status?: 'active' | 'archived' | 'deleted';
-  updated_at?: string;
+  status: 'active' | 'archived' | 'deleted';
+  updated_at: string;
 }
 
 /**
@@ -28,16 +28,7 @@ class Conversations extends BaseModel {
    * @returns Created conversation
    */
   async createConversation(data: ConversationData, transaction: DB = db): Promise<ConversationData> {
-    const now = new Date().toISOString();
-    const conversationData: ConversationData = {
-      id: data.id || uuidv4(),
-      project_id: data.project_id,
-      model: data.model,
-      status: data.status || 'active',
-      updated_at: now
-    };
-
-    return this.create<ConversationData>(conversationData, transaction);
+    return this.create<ConversationData>(data, transaction);
   }
 
   /**
@@ -46,7 +37,7 @@ class Conversations extends BaseModel {
    * @param transaction - Optional transaction object
    * @returns Active conversation or undefined
    */
-  async findActiveByProject(projectId: string, transaction: DB = db): Promise<ConversationData | undefined> {
+  async findActiveByProject(projectId: string, transaction: DB = db): Promise<ConversationData> {
     const query = `
       SELECT * FROM ${this.tableName}
       WHERE project_id = ? AND status = 'active'
@@ -54,7 +45,13 @@ class Conversations extends BaseModel {
       LIMIT 1
     `;
     
-    return transaction.get<ConversationData>(query, [projectId]);
+     const result = await transaction.get<ConversationData>(query, [projectId]);
+
+     if (result == undefined){
+       throw new Error("Could not retrieve conversation for project - there is an issue with project creation or inappropriate deletion somewhere!");
+     }
+
+     return result
   }
 
   /**

@@ -4,6 +4,7 @@ import { db, DB } from '../db';
 import Conversations from './conversations';
 import Objects from './objects';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages/messages';
+import { TextPart, ImagePart } from 'ai';
 /**
  * Message data interface
  */
@@ -11,14 +12,15 @@ export interface MessageData {
   id?: string;
   conversation_id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
-  tool_calls?: string;
+  content: any; // Can be string (serialized) or direct object
+  tool_calls?: any; // Can be string (serialized) or direct object
   tool_call_id?: string;
-  tool_output?: string;
+  tool_output?: any; // Can be string (serialized) or direct object
   input_tokens_used?: number;
   output_tokens_used?: number;
   error?: string | null;
-  object_id?: string | null;
+  already_trained?: boolean; // Whether this message has been used as training data
+  trained_at?: string; // Timestamp when the message was used for training
   created_by: string;
   created_at?: string;
   updated_at?: string;
@@ -29,31 +31,6 @@ export interface MessageData {
  */
 export interface MessageWithObject extends MessageData {
   object?: string;
-}
-
-/**
- * Extended chat message for Claude
- */
-export interface ExtendedChatMessage {
-  role: 'user' | 'assistant' | 'tool';
-  content: string | Array<{
-    type: string;
-    tool_use_id?: string;
-    content?: string;
-    image_url?: {
-      url: string;
-    };
-  }>;
-  tool_call_id?: string;
-  tool_output?: string;
-  tool_calls?: Array<{
-    id: string;
-    type: 'function';
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
 }
 
 /**
@@ -98,6 +75,19 @@ class Messages extends BaseModel {
   }
 
   /**
+   * Add multiple messages to a conversation
+   * @param data - Array of message data
+   * @param transaction - Optional transaction object
+   * @returns Created messages
+   */
+  async addMessages(data: MessageData[], transaction: DB = db): Promise<MessageData[]> {
+    for (const message of data) {
+      await this.addMessage(message, transaction);
+    }
+    return data;
+  }
+
+  /**
    * Internal method to add a message with a transaction
    * @param data - Message data
    * @param transaction - Transaction object
@@ -135,7 +125,6 @@ class Messages extends BaseModel {
       input_tokens_used: data.input_tokens_used,
       output_tokens_used: data.output_tokens_used,
       error: data.error || null,
-      object_id: data.object_id || null,
       created_by: data.created_by,
       created_at: now,
       updated_at: now
@@ -151,140 +140,12 @@ class Messages extends BaseModel {
   }
 
   /**
-   * Add Claude messages to a conversation
-   * @param messages - Extended chat messages
-   * @param projectId - Project ID
-   * @param userId - User ID
-   * @param scad - SCAD code (optional)
-   * @param transaction - Optional transaction object
-   * @returns Normalized messages
-   */
-  async addClaudeMessages(
-    messages: MessageParam[],
-    projectId: string,
-    userId: string,
-    scad: string,
-    transaction: DB = db
-  ): Promise<NormalizedMessage[]> {
-    return transaction.transaction(async (tx: DB) => {
-      // Get or create conversation
-      let conversation = await this.getOrCreateConversation(projectId, tx);
-
-      // Create object record if there's SCAD code
-      const objectId = scad ? await this.createObjectIfNeeded(scad, projectId, tx) : null;
-
-      // Format and insert messages
-      const formattedMessages: MessageData[] = [];
-      for (const message of messages) {
-        let normalizedContent;
-
-        // Normalize content format
-        if (typeof message.content === 'string') {
-          normalizedContent = [{
-            type: "text",
-            text: message.content
-          }];
-        } else {
-          normalizedContent = message.content;
-        }
-
-        formattedMessages.push({
-          id: uuidv4(),
-          conversation_id: conversation.id,
-          role: message.role,
-          content: JSON.stringify(normalizedContent),
-          object_id: message.role === "assistant" ? objectId : null,
-          tool_call_id: undefined,
-          tool_calls: undefined,
-          tool_output: undefined,
-          created_by: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      }
-
-      // Insert all messages
-      for (const messageData of formattedMessages) {
-        await this.addMessage(messageData, tx);
-      }
-
-      // Update conversation's last activity time
-      await Conversations.updateLastActivity(conversation.id, tx);
-
-      // Return normalized messages
-      return formattedMessages.map(message => ({
-        id: message.id as string,
-        conversation_id: message.conversation_id,
-        role: message.role,
-        content: JSON.parse(message.content),
-        tool_call_id: message.tool_call_id,
-        tool_calls: message.tool_calls ? JSON.parse(message.tool_calls) : [],
-        tool_output: message.tool_output ? JSON.parse(message.tool_output as string) : [],
-        created_by: message.created_by,
-        created_at: message.created_at as string,
-        updated_at: message.updated_at as string
-      }));
-    });
-  }
-
-  /**
-   * Get or create a conversation for a project
-   * @param projectId - Project ID
-   * @param transaction - Transaction object
-   * @returns Conversation ID
-   */
-  private async getOrCreateConversation(projectId: string, transaction: DB): Promise<{ id: string }> {
-    const query = `
-      SELECT id FROM conversations
-      WHERE project_id = ? AND status = 'active'
-      LIMIT 1
-    `;
-    
-    const conversation = await transaction.get<{ id: string }>(query, [projectId]);
-    
-    if (conversation) {
-      return conversation;
-    }
-    
-    // Create new conversation
-    const conversationId = uuidv4();
-    const model = process.env.CLAUDE_BASE_URL + '--' + process.env.CLAUDE_MODEL;
-    
-    await Conversations.createConversation({
-      id: conversationId,
-      project_id: projectId,
-      model: model,
-      status: 'active'
-    }, transaction);
-    
-    return { id: conversationId };
-  }
-
-  /**
-   * Create an object record if needed
-   * @param scad - SCAD code
-   * @param transaction - Transaction object
-   * @returns Object ID
-   */
-  private async createObjectIfNeeded(scad: string, projectId: string, transaction: DB): Promise<string> {
-    const objectId = uuidv4();
-    
-    await Objects.createObject({
-      id: objectId,
-      object: scad,
-      project_id: projectId
-    }, transaction);
-    
-    return objectId;
-  }
-
-  /**
    * Get historical messages for a project
    * @param projectId - Project ID
    * @param transaction - Optional transaction object
    * @returns Extended chat messages
    */
-  async getMessages(projectId: string, transaction: DB = db): Promise<ExtendedChatMessage[]> {
+  async getMessages(projectId: string, transaction: DB = db): Promise<MessageData[]> {
     // Get active conversation for project
     const conversation = await Conversations.findActiveByProject(projectId, transaction);
     
@@ -306,32 +167,54 @@ class Messages extends BaseModel {
   }
 
   /**
-   * Process messages from database to ExtendedChatMessage format
+   * Process messages from database to MessageData format
    * @param messages - Raw messages from database
-   * @returns Extended chat messages
+   * @returns Message data
    */
-  private processMessages(messages: any[]): ExtendedChatMessage[] {
-    const filtered: ExtendedChatMessage[] = [];
+  private processMessages(messages: any[]): MessageData[] {
+    const filtered: MessageData[] = [];
 
     messages.forEach((msg) => {
-      if (msg.role === 'tool') {
-        filtered.push({
-          role: "tool",
-          content: JSON.parse(msg.content),
-          tool_call_id: msg.tool_call_id
-        });
-      } else if (msg.role === 'assistant') {
-        const pushMsg = {
-          role: "assistant",
-          content: msg.content ? JSON.parse(msg.content) : [],
-          tool_calls: msg.tool_calls ? JSON.parse(msg.tool_calls) : []
-        };
-        filtered.push(pushMsg as ExtendedChatMessage);
-      } else if (msg.role === 'user') {
-        filtered.push({
-          role: "user",
-          content: JSON.parse(msg.content)
-        });
+      try {
+        // Parse content if it's a string
+        let parsedContent = msg.content;
+        if (typeof parsedContent === 'string') {
+          try {
+            parsedContent = JSON.parse(parsedContent);
+          } catch (e) {
+            // If parsing fails, keep as string and wrap in a text block
+            parsedContent = [{ type: 'text', text: parsedContent }];
+          }
+        }
+
+        // Parse tool_calls if it's a string
+        let parsedToolCalls = msg.tool_calls || [];
+        if (typeof parsedToolCalls === 'string') {
+          try {
+            parsedToolCalls = JSON.parse(parsedToolCalls);
+          } catch (e) {
+            console.error('Error parsing tool_calls:', e);
+            parsedToolCalls = [];
+          }
+        }
+
+        if (msg.role === 'assistant') {
+          const pushMsg = {
+            role: "assistant",
+            content: parsedContent,
+            tool_calls: parsedToolCalls
+          };
+          filtered.push(pushMsg as MessageData);
+        } else if (msg.role === 'user') {
+          filtered.push({
+            role: "user",
+            content: parsedContent,
+            conversation_id: msg.conversation_id,
+            created_by: msg.created_by
+          });
+        }
+      } catch (e) {
+        console.error('Error processing message:', e, msg);
       }
     });
 
@@ -345,47 +228,13 @@ class Messages extends BaseModel {
    * @returns Messages in the conversation
    */
   async findByConversation(conversationId: string, transaction: DB = db): Promise<MessageData[]> {
-    return this.findAll<MessageData>({
+    const messages = await this.findAll<MessageData>({
       where: { conversation_id: conversationId },
       orderBy: 'created_at ASC'
     }, transaction);
-  }
-
-  /**
-   * Find messages with their associated objects
-   * @param conversationId - Conversation ID
-   * @param transaction - Optional transaction object
-   * @returns Messages with object data
-   */
-  async findWithObjects(conversationId: string, transaction: DB = db): Promise<MessageWithObject[]> {
-    const query = `
-      SELECT m.*, o.object
-      FROM ${this.tableName} m
-      LEFT JOIN objects o ON m.object_id = o.id
-      WHERE m.conversation_id = ?
-      ORDER BY m.created_at ASC
-    `;
     
-    let rows: MessageWithObject[] = await transaction.all<MessageWithObject>(query, [conversationId]);
-    
-    // Parse JSON content
-    return rows.map(row => {
-      try {
-        if (row.content && typeof row.content === 'string') {
-          row.content = JSON.parse(row.content);
-        }
-        if (row.tool_calls && typeof row.tool_calls === 'string') {
-          row.tool_calls = JSON.parse(row.tool_calls);
-        }
-        if (row.tool_output && typeof row.tool_output === 'string') {
-          row.tool_output = JSON.parse(row.tool_output);
-        }
-      } catch (e) {
-        // If parsing fails, keep as string
-        console.error('Error parsing JSON in message:', e);
-      }
-      return row;
-    });
+    // Deserialize JSON fields
+    return messages.map(msg => this.deserializeMessageFields(msg));
   }
 
   /**
@@ -405,20 +254,7 @@ class Messages extends BaseModel {
     let row: MessageData | undefined = await transaction.get<MessageData>(query, [conversationId]);
     
     if (row) {
-      try {
-        if (row.content && typeof row.content === 'string') {
-          row.content = JSON.parse(row.content);
-        }
-        if (row.tool_calls && typeof row.tool_calls === 'string') {
-          row.tool_calls = JSON.parse(row.tool_calls);
-        }
-        if (row.tool_output && typeof row.tool_output === 'string') {
-          row.tool_output = JSON.parse(row.tool_output);
-        }
-      } catch (e) {
-        // If parsing fails, keep as string
-        console.error('Error parsing JSON in message:', e);
-      }
+      return this.deserializeMessageFields(row);
     }
     
     return row;
@@ -432,25 +268,14 @@ class Messages extends BaseModel {
    * @returns Updated message
    */
   async updateMessage(id: string, data: Partial<MessageData>, transaction: DB = db): Promise<MessageData> {
-    const updateData = {
+    // Prepare update data with timestamp
+    const baseUpdateData = {
       ...data,
       updated_at: new Date().toISOString()
     };
     
-    // Stringify content if it's an object
-    if (updateData.content && typeof updateData.content === 'object') {
-      updateData.content = JSON.stringify(updateData.content);
-    }
-    
-    // Stringify tool_calls if it's an object
-    if (updateData.tool_calls && typeof updateData.tool_calls === 'object') {
-      updateData.tool_calls = JSON.stringify(updateData.tool_calls);
-    }
-    
-    // Stringify tool_output if it's an object
-    if (updateData.tool_output && typeof updateData.tool_output === 'object') {
-      updateData.tool_output = JSON.stringify(updateData.tool_output);
-    }
+    // Serialize all JSON fields before saving
+    const updateData = this.serializeMessageFields(baseUpdateData);
 
     return this.update<MessageData>(id, updateData, transaction);
   }
@@ -460,21 +285,104 @@ class Messages extends BaseModel {
    * @param content - Message content (string or content blocks)
    * @returns Normalized content blocks
    */
-  normalizeMessage(content: string | any[]): any[] {
+  normalizeMessageContent(content: string | any[]): (TextPart | ImagePart)[] {
     if (typeof content === 'string') {
-      return [{ type: 'text', text: content }];
+      return [{ type: 'text', text: content } as TextPart];
     } else if (Array.isArray(content)) {
       return content.map(block => {
         if (typeof block === 'string') {
-          return { type: 'text', text: block };
+          return { type: 'text', text: block } as TextPart;
         } else if (block.type === 'text') {
-          return { type: 'text', text: block.text };
+          return { type: 'text', text: block.text } as TextPart;
+        } else if (block.type === 'image' && block.image) {
+          return { type: 'image', image: block.image } as ImagePart;
         }
-        return block;
+        return block as TextPart | ImagePart;
       });
     }
     return [];
   }
+
+  /**
+   * Helper method to deserialize JSON fields in a message
+   * @param message - The message to deserialize
+   * @returns The deserialized message
+   */
+  private deserializeMessageFields(message: MessageData): MessageData {
+    try {
+      // Create a copy of the message to avoid modifying the original
+      const result = { ...message };
+      
+      // Parse content if it's a string
+      if (result.content && typeof result.content === 'string') {
+        try {
+          result.content = JSON.parse(result.content);
+        } catch (e) {
+          // If parsing fails, keep as string
+          console.error('Error parsing content JSON:', e);
+        }
+      }
+      
+      // Parse tool_calls if it's a string
+      if (result.tool_calls && typeof result.tool_calls === 'string') {
+        try {
+          result.tool_calls = JSON.parse(result.tool_calls);
+        } catch (e) {
+          // If parsing fails, keep as string
+          console.error('Error parsing tool_calls JSON:', e);
+        }
+      }
+      
+      // Parse tool_output if it's a string
+      if (result.tool_output && typeof result.tool_output === 'string') {
+        try {
+          result.tool_output = JSON.parse(result.tool_output);
+        } catch (e) {
+          // If parsing fails, keep as string
+          console.error('Error parsing tool_output JSON:', e);
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      console.error('Error deserializing message fields:', e);
+      return message; // Return original if any error occurs
+    }
+  }
+  
+  /**
+   * Helper method to serialize JSON fields in a message
+   * @param message - The message to serialize
+   * @returns The serialized message
+   */
+  private serializeMessageFields(message: Partial<MessageData>): Partial<MessageData> {
+    try {
+      // Create a copy of the message to avoid modifying the original
+      const result = { ...message };
+      
+      // Stringify content if it's an object
+      if (result.content && typeof result.content === 'object') {
+        result.content = JSON.stringify(result.content);
+      }
+      
+      // Stringify tool_calls if it's an object
+      if (result.tool_calls && typeof result.tool_calls === 'object') {
+        result.tool_calls = JSON.stringify(result.tool_calls);
+      }
+      
+      // Stringify tool_output if it's an object
+      if (result.tool_output && typeof result.tool_output === 'object') {
+        result.tool_output = JSON.stringify(result.tool_output);
+      }
+      
+      return result;
+    } catch (e) {
+      console.error('Error serializing message fields:', e);
+      return message; // Return original if any error occurs
+    }
+  }
 }
 
-export default new Messages(); 
+
+
+export default new Messages();

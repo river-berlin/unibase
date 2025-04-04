@@ -866,6 +866,18 @@ export type UpdateProjectAttributesData = {
          * New folder ID or null to move to root
          */
         folder_id?: string | null;
+        /**
+         * Whether to use this project for training data
+         */
+        use_for_training?: boolean;
+        /**
+         * Whether this project has been used as training data
+         */
+        already_trained?: boolean;
+        /**
+         * Timestamp when the project was used for training
+         */
+        trained_at?: string;
     };
     headers?: {
         authorization?: string;
@@ -931,6 +943,10 @@ export type UpdateProjectAttributesResponses = {
         updated_at?: string;
         folder_name?: string | null;
         folder_path?: string | null;
+        /**
+         * Whether this project is used for training data
+         */
+        use_for_training?: boolean;
     };
 };
 
@@ -1078,48 +1094,6 @@ export type UpdateProjectScadResponses = {
 
 export type UpdateProjectScadResponse = UpdateProjectScadResponses[keyof UpdateProjectScadResponses];
 
-export type GetProjectStlData = {
-    body?: never;
-    headers?: {
-        authorization?: string;
-    };
-    path: {
-        /**
-         * The ID of the project
-         */
-        projectId: string;
-    };
-    query?: never;
-    url: '/projects/{projectId}/stl';
-};
-
-export type GetProjectStlErrors = {
-    /**
-     * Unauthorized - Invalid token
-     */
-    401: _Error;
-    /**
-     * Server error - JWT_SECRET not configured
-     */
-    500: _Error;
-};
-
-export type GetProjectStlError = GetProjectStlErrors[keyof GetProjectStlErrors];
-
-export type GetProjectStlResponses = {
-    /**
-     * Latest STL retrieved successfully
-     */
-    200: {
-        /**
-         * The STL content. Empty string if no objects exist.
-         */
-        stl?: string;
-    };
-};
-
-export type GetProjectStlResponse = GetProjectStlResponses[keyof GetProjectStlResponses];
-
 export type GetProjectCodeData = {
     body?: never;
     headers?: {
@@ -1177,6 +1151,14 @@ export type GetProjectCodeResponses = {
              * ID of the project this object belongs to
              */
             project_id?: string;
+            /**
+             * Filename of the object
+             */
+            filename?: string;
+            /**
+             * Filepath of the object
+             */
+            filepath?: string;
         }>;
     };
 };
@@ -1193,6 +1175,14 @@ export type UpdateProjectCodeData = {
          * Optional ID of an existing object to update
          */
         id?: string;
+        /**
+         * Optional filename for the code object
+         */
+        filename?: string;
+        /**
+         * Optional filepath for the code object
+         */
+        filepath?: string;
     };
     headers?: {
         authorization?: string;
@@ -1246,11 +1236,72 @@ export type UpdateProjectCodeResponses = {
              * The project ID
              */
             project_id?: string;
+            /**
+             * Filename of the object
+             */
+            filename?: string;
+            /**
+             * Filepath of the object
+             */
+            filepath?: string;
         };
     };
 };
 
 export type UpdateProjectCodeResponse = UpdateProjectCodeResponses[keyof UpdateProjectCodeResponses];
+
+export type DeleteProjectCodeData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * ID of the code object to delete
+         */
+        objectId: string;
+    };
+    query?: never;
+    url: '/projects/code/{objectId}';
+};
+
+export type DeleteProjectCodeErrors = {
+    /**
+     * User not authenticated
+     */
+    401: {
+        error?: string;
+    };
+    /**
+     * No access to project
+     */
+    403: {
+        error?: string;
+    };
+    /**
+     * Code object not found
+     */
+    404: {
+        error?: string;
+    };
+    /**
+     * Server error - JWT_SECRET not configured
+     */
+    500: _Error;
+};
+
+export type DeleteProjectCodeError = DeleteProjectCodeErrors[keyof DeleteProjectCodeErrors];
+
+export type DeleteProjectCodeResponses = {
+    /**
+     * Code object deleted successfully
+     */
+    200: {
+        message?: string;
+    };
+};
+
+export type DeleteProjectCodeResponse = DeleteProjectCodeResponses[keyof DeleteProjectCodeResponses];
 
 export type GetAdminUsersData = {
     body?: never;
@@ -1356,20 +1407,11 @@ export type DeleteAdminUsersByUserIdError = DeleteAdminUsersByUserIdErrors[keyof
 
 export type GenerateObjectsData = {
     body: {
-        /**
-         * Natural language instructions for generating 3D objects
-         */
         instructions: string;
         /**
-         * The base64 image of the rendered openscad
+         * Base64 encoded image of the object
          */
         base64Image?: string;
-        /**
-         * Optional manual JSON input to override generation
-         */
-        manualJson?: {
-            [key: string]: unknown;
-        } | null;
     };
     headers?: {
         authorization?: string;
@@ -1429,48 +1471,26 @@ export type GenerateObjectsResponses = {
      */
     200: {
         /**
-         * Generated scene description
-         */
-        json?: {
-            objects?: Array<{
-                type?: 'cube' | 'sphere' | 'cylinder' | 'polyhedron';
-                params?: {
-                    [key: string]: unknown;
-                };
-                position?: {
-                    x?: number;
-                    y?: number;
-                    z?: number;
-                };
-            }>;
-            scene?: {
-                rotation?: {
-                    x?: number;
-                    y?: number;
-                    z?: number;
-                };
-            };
-        };
-        /**
-         * Step-by-step reasoning for the generation
-         */
-        reasoning?: string;
-        /**
          * ID of the generated message in conversation
          */
         messageId?: string;
-        toolCalls?: Array<{
-            [key: string]: unknown;
+        /**
+         * Chat messages generated during the process
+         */
+        messages?: Array<{
+            role?: 'user' | 'assistant' | 'tool';
+            content?: string;
+            tool_calls?: Array<{
+                [key: string]: unknown;
+            }> | null;
+            tool_outputs?: Array<{
+                [key: string]: unknown;
+            }> | null;
         }>;
-        errors?: Array<string>;
         /**
-         * STL file for the generated objects
+         * JavaScript/ThreeJS content for the generated objects
          */
-        stl?: string;
-        /**
-         * SCAD file for the generated objects
-         */
-        scad?: string;
+        jsContent?: string;
     };
 };
 

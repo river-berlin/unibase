@@ -9,6 +9,9 @@ export interface Project {
   folderId?: string | null;
   createdAt: string;
   updatedAt: string;
+  use_for_training?: boolean;
+  already_trained?: boolean;
+  trained_at?: string;
 }
 
 /**

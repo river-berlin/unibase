@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from './messages/Message';
-import { Editor } from './Editor';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'tool';
@@ -11,7 +10,6 @@ interface ChatMessageProps {
   toolCallId?: string;
   errors?: any;
   outputs?: string;
-  openScadCode?: string; // New prop for OpenSCAD code
 }
 
 export function ChatMessage({ 
@@ -21,10 +19,7 @@ export function ChatMessage({
   toolCallId, 
   errors, 
   outputs,
-  openScadCode 
 }: ChatMessageProps) {
-  // Check if this message contains OpenSCAD code
-  const hasOpenScadCode = !!openScadCode;
   
   return (
     <View className="p-3 bg-white">
@@ -49,35 +44,11 @@ export function ChatMessage({
         role === 'tool' ? 'bg-green-50 border border-green-200' :
         'bg-gray-50 border border-gray-200'
       }`}>
-        {role === 'assistant' ? (
+        {
           <>
             <Message title="Message" content={content} defaultExpanded={true} toolCalls={toolCalls} />
-            {hasOpenScadCode && (
-              <View className="mt-3">
-                <Editor />
-              </View>
-            )}
           </>
-        ) : role === 'tool' && toolCallId?.includes('openscad') ? (
-          // Special handling for OpenSCAD tool responses
-          <>
-            <Message title="Tool Response" content={content} defaultExpanded={true} toolCalls={toolCalls} />
-            {hasOpenScadCode && (
-              <View className="mt-3">
-                <Editor />
-              </View>
-            )}
-          </>
-        ) : (
-          <>
-            <Message title="Message" content={content} defaultExpanded={true} toolCalls={toolCalls} />
-            {hasOpenScadCode && (
-              <View className="mt-3">
-                <Editor />
-              </View>
-            )}
-          </>
-        )}
+}
       </View>
     </View>
   );

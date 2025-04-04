@@ -83,7 +83,7 @@ export const useApi = () => {
       if (response.data?.token) {
         await storage.setItem('token', response.data.token);
       } else {
-        throw new Error('Login failed - ' + response.error?.error);
+        throw new Error('Login failed - ' + response.error);
       }
 
       return response.data;

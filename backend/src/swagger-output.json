@@ -1960,7 +1960,7 @@
           "Projects"
         ],
         "summary": "Update project details",
-        "description": "Updates project information including name, description, icon, and folder location",
+        "description": "Updates project information including name, description, icon, folder location, and training status",
         "operationId": "updateProjectAttributes",
         "parameters": [
           {
@@ -2023,6 +2023,10 @@
                     "folder_path": {
                       "type": "string",
                       "nullable": true
+                    },
+                    "use_for_training": {
+                      "type": "boolean",
+                      "description": "Whether this project is used for training data"
                     }
                   }
                 }
@@ -2171,6 +2175,21 @@
                     "format": "uuid",
                     "nullable": true,
                     "description": "New folder ID or null to move to root"
+                  },
+                  "use_for_training": {
+                    "type": "boolean",
+                    "description": "Whether to use this project for training data",
+                    "example": true
+                  },
+                  "already_trained": {
+                    "type": "boolean",
+                    "description": "Whether this project has been used as training data",
+                    "example": false
+                  },
+                  "trained_at": {
+                    "type": "string",
+                    "description": "Timestamp when the project was used for training",
+                    "example": "2025-04-05T10:30:00Z"
                   }
                 }
               }
@@ -2613,93 +2632,6 @@
         }
       }
     },
-    "/projects/{projectId}/stl": {
-      "get": {
-        "tags": [
-          "Projects"
-        ],
-        "summary": "Get latest STL for a project",
-        "description": "Get the latest STL for a project. If no objects exist, return an empty string.",
-        "operationId": "getProjectStl",
-        "parameters": [
-          {
-            "name": "projectId",
-            "in": "path",
-            "description": "The ID of the project",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Latest STL retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "stl": {
-                      "type": "string",
-                      "description": "The STL content. Empty string if no objects exist."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          },
-          "500": {
-            "description": "Server error - JWT_SECRET not configured",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/xml": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
     "/projects/{projectId}/code": {
       "get": {
         "tags": [
@@ -2761,6 +2693,14 @@
                           "project_id": {
                             "type": "string",
                             "description": "ID of the project this object belongs to"
+                          },
+                          "filename": {
+                            "type": "string",
+                            "description": "Filename of the object"
+                          },
+                          "filepath": {
+                            "type": "string",
+                            "description": "Filepath of the object"
                           }
                         }
                       }
@@ -2870,6 +2810,14 @@
                         "project_id": {
                           "type": "string",
                           "description": "The project ID"
+                        },
+                        "filename": {
+                          "type": "string",
+                          "description": "Filename of the object"
+                        },
+                        "filepath": {
+                          "type": "string",
+                          "description": "Filepath of the object"
                         }
                       }
                     }
@@ -2937,12 +2885,141 @@
                   "id": {
                     "type": "string",
                     "description": "Optional ID of an existing object to update"
+                  },
+                  "filename": {
+                    "type": "string",
+                    "description": "Optional filename for the code object"
+                  },
+                  "filepath": {
+                    "type": "string",
+                    "description": "Optional filepath for the code object"
                   }
                 }
               }
             }
           }
         }
+      }
+    },
+    "/projects/code/{objectId}": {
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete code object for a project",
+        "description": "Deletes a JavaScript code object from a project. Requires project access permissions.",
+        "operationId": "deleteProjectCode",
+        "parameters": [
+          {
+            "name": "objectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the code object to delete",
+            "format": "uuid"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Code object deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Code object deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized"
+                    }
+                  }
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "403": {
+            "description": "No access to project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No access to this project"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Code object not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Code object not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error - JWT_SECRET not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/admin/users/": {
@@ -3235,93 +3312,48 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "json": {
-                      "type": "object",
-                      "description": "Generated scene description",
-                      "properties": {
-                        "objects": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "cube",
-                                  "sphere",
-                                  "cylinder",
-                                  "polyhedron"
-                                ]
-                              },
-                              "params": {
-                                "type": "object"
-                              },
-                              "position": {
-                                "type": "object",
-                                "properties": {
-                                  "x": {
-                                    "type": "number"
-                                  },
-                                  "y": {
-                                    "type": "number"
-                                  },
-                                  "z": {
-                                    "type": "number"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        "scene": {
-                          "type": "object",
-                          "properties": {
-                            "rotation": {
-                              "type": "object",
-                              "properties": {
-                                "x": {
-                                  "type": "number"
-                                },
-                                "y": {
-                                  "type": "number"
-                                },
-                                "z": {
-                                  "type": "number"
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "reasoning": {
-                      "type": "string",
-                      "description": "Step-by-step reasoning for the generation"
-                    },
                     "messageId": {
                       "type": "string",
                       "format": "uuid",
                       "description": "ID of the generated message in conversation"
                     },
-                    "toolCalls": {
+                    "messages": {
                       "type": "array",
+                      "description": "Chat messages generated during the process",
                       "items": {
-                        "type": "object"
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "user",
+                              "assistant",
+                              "tool"
+                            ]
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "tool_calls": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            },
+                            "nullable": true
+                          },
+                          "tool_outputs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            },
+                            "nullable": true
+                          }
+                        }
                       }
                     },
-                    "errors": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "stl": {
+                    "jsContent": {
                       "type": "string",
-                      "description": "STL file for the generated objects"
-                    },
-                    "scad": {
-                      "type": "string",
-                      "description": "SCAD file for the generated objects"
+                      "description": "JavaScript/ThreeJS content for the generated objects"
                     }
                   }
                 }
@@ -3436,18 +3468,13 @@
                 "properties": {
                   "instructions": {
                     "type": "string",
-                    "description": "Natural language instructions for generating 3D objects",
-                    "example": "Create a red cube floating above a blue sphere"
+                    "minLength": 1,
+                    "example": "Create a 3D object based on the instructions"
                   },
                   "base64Image": {
                     "type": "string",
-                    "description": "The base64 image of the rendered openscad",
-                    "example": "data:image/png;base64,..."
-                  },
-                  "manualJson": {
-                    "type": "object",
-                    "description": "Optional manual JSON input to override generation",
-                    "nullable": true
+                    "format": "base64",
+                    "description": "Base64 encoded image of the object"
                   }
                 }
               }

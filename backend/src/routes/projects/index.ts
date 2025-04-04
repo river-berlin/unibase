@@ -6,9 +6,9 @@ import updateProjectRoute from './update';
 import deleteProjectRoute from './delete';
 import getProjectScadRoute from './getProjectScad';
 import updateProjectScadRoute from './updateProjectScad';
-import getProjectStlRoute from './getProjectStl';
 import getProjectScadCode from './getProjectCode';
-import updateProjectCodeRoute from './updateProjectCode'
+import updateProjectCodeRoute from './updateProjectCode';
+import deleteProjectCodeRoute from './deleteProjectCode';
 
 const router = Router();
 
@@ -19,8 +19,8 @@ router.use(updateProjectRoute);
 router.use(deleteProjectRoute);
 router.use(getProjectScadRoute);
 router.use(updateProjectScadRoute);
-router.use(getProjectStlRoute);
 router.use(getProjectScadCode);
-router.use(updateProjectCodeRoute); 
+router.use(updateProjectCodeRoute);
+router.use(deleteProjectCodeRoute);
 
 export default router; 

@@ -5,6 +5,8 @@ import OrganizationMembers from '../../database/models/organization-members';
 import Folders from '../../database/models/folders';
 import Conversations from '../../database/models/conversations';
 import { DB } from '../../database/db';
+import { v4 as uuidv4 } from 'uuid';
+
 interface CreateProjectRequest extends Request {
   body: {
     name: string;
@@ -221,9 +223,11 @@ router.post('/',
       
       // Create default conversation for the project
       await Conversations.createConversation({
+        id : uuidv4(),
         project_id: newProject.id as string,
-        model: 'claude-3-sonnet-20240229',
-        status: 'active'
+        model: process.env.LLM_MODEL as string,
+        status: 'active',
+        updated_at: new Date().toISOString()
       }, tx);
       
       return newProject;

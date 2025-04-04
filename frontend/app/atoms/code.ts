@@ -3,7 +3,7 @@ import { GetProjectCodeResponses } from '~/client';
 
 // Define a non-nullable version of the objects type
 type CodeObject = NonNullable<GetProjectCodeResponses['200']['objects']>[number];
-type NonNullableCodeObjects = CodeObject[];
+export type NonNullableCodeObjects = CodeObject[];
 
 /**
  * Atom for storing the current javascript code

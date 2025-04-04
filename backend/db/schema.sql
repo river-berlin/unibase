@@ -55,7 +55,7 @@ CREATE TABLE projects (
   created_by TEXT NOT NULL,
   last_modified_by TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL, use_for_training INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
   FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -80,11 +80,11 @@ CREATE TABLE objects (
   object TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
-, project_id TEXT REFERENCES projects(id) ON DELETE CASCADE);
+, project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, filepath TEXT, filename TEXT);
 CREATE TABLE IF NOT EXISTS "messages" (
     id TEXT PRIMARY KEY,
     conversation_id TEXT REFERENCES conversations(id) ON DELETE CASCADE,
-    role TEX
+    role TEXT,
     content TEXT,
     tool_calls TEXT,
     tool_call_id TEXT,
@@ -95,7 +95,8 @@ CREATE TABLE IF NOT EXISTS "messages" (
     created_by TEXT REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT,
     updated_at TEXT
-);
+, already_trained BOOLEAN DEFAULT FALSE, trained_at TEXT DEFAULT NULL);
+CREATE INDEX idx_messages_already_trained ON messages(already_trained);
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20240701000000'),
@@ -104,4 +105,8 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20240701000003'),
   ('20240701000004'),
   ('20240701000005'),
-  ('20250319101831');
+  ('20250319101831'),
+  ('20250324163845'),
+  ('20250325000000'),
+  ('20250402094229'),
+  ('20250404191952');

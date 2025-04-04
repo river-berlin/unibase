@@ -1,5 +1,7 @@
 # Database Schema
 
+> **Important Note**: When making changes to the database schema through dbmate migrations, always ensure that the corresponding model files in `src/database/models/` are also updated to maintain consistency between the database schema and the application code.
+
 ## Users Table
 
 Stores user account information.
@@ -59,6 +61,7 @@ Stores project information.
 | last_modified_by| text    | Foreign key to users.id                        | FK,IDX|
 | created_at      | text    | Timestamp of creation                          |       |
 | updated_at      | text    | Timestamp of last update                       |       |
+| use_for_training| integer | Whether to use project for training (0 or 1)   |       |
 
 ## Folders Table
 
@@ -82,7 +85,7 @@ Stores chat/conversation sessions.
 |-----------------|---------|------------------------------------------------|-------|
 | id              | text    | Primary key, UUID                              | PK    |
 | project_id      | text    | Foreign key to projects.id                     | FK,IDX|
-| model           | text    | AI model used (e.g., 'gpt-4o', 'claude-3')     |       |
+| model           | text    | AI model used (e.g., 'gpt-4o-latest', 'claude-3.7-someversionnumber')     |       |
 | status          | text    | Status ('active', 'archived', 'deleted')       | IDX   |
 | updated_at      | text    | Timestamp of last update                       |       |
 
@@ -99,6 +102,8 @@ Stores messages in conversations.
 | tool_calls        | text    | Tool calls made by assistant (JSON)            |       |
 | tool_call_id      | text    | ID of the tool call (only for role='tool')     |       |
 | tool_output       | text    | Tool output (only for role='tool')             |       |
+| already_trained   | boolean | Whether this message has been used as training data | IDX   |
+| trained_at        | text    | Timestamp when the message was used for training |       |
 | input_tokens_used | integer | Number of input tokens used                    |       |
 | output_tokens_used| integer | Number of output tokens used                   |       |
 | error             | text    | Error message if failed                        |       |
@@ -115,6 +120,8 @@ Stores 3D objects in Javascript format.
 | id          | text    | Primary key, UUID                              | PK    |
 | object      | text    | Object definition                              |       |
 | project_id  | text    | Foreign key to projects.id                     | FK    |
+| filepath    | text    | Path to the file (optional)                    |       |
+| filename    | text    | Name of the file (optional)                    |       |
 | created_at  | text    | Timestamp of creation                          |       |
 | updated_at  | text    | Timestamp of last update                       |       |
 

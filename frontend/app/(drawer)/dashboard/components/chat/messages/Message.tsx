@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, Image } from 'react-native';
 import { ToolCalls } from './ToolCalls'; 
 
 interface ReasoningProps {
@@ -16,18 +14,18 @@ interface ReasoningProps {
   toolCalls: Array<any>;
 }
 
-export function Message({ title, content, defaultExpanded = true, toolCalls }: ReasoningProps) {
+export function Message({ content, toolCalls }: ReasoningProps) {
   return (
     <View>
       {content && content.map((item, index) => {
         if (item.type === 'text' && item.text) {
           return <Text key={index}>{item.text}</Text>;
         }
-        if (item.type === 'image_url' && item.image_url?.url) {
+        if (item.type === 'image' && item.url) {
           return (
             <Image
               key={index}
-              source={{ uri: item.image_url.url }}
+              source={{ uri: item.url }}
               style={{ width: 100, height: 100 }}
             />
           );

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Platform, ActivityIndicator, Text } from 'react-native';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -6,9 +6,8 @@ import { setupLighting } from './setupLighting';
 import { setupCamera, updateCameraAspect, getRenderImage, CameraState } from './setupCamera';
 import { setupFloor, loadSTLObject } from './setupObject';
 import { setupCoordinateArrows } from './setupCoordinateArrows';
-import { useSceneImage, useStlData, useCode } from '../../../../../app/atoms';
-import { updateProjectScad } from '../../../../../client/sdk.gen';
-import { initStlExporter, generateStl, cleanupStlExporter } from './StlExporter';
+import { useSceneImage, useStlData } from '../../../../../app/atoms';
+// STL generation is now handled in the Editor component
 
 interface ThreeRendererProps {
   setScene: (sceneImage: string) => void;
@@ -26,8 +25,7 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
   const meshRef = useRef<THREE.Mesh | null>(null);
   const cameraStateRef = useRef<CameraState | null>(null);
   const { setImage } = useSceneImage();
-  const { stlData, setStl } = useStlData();
-  const { code } = useCode();
+  const { stlData } = useStlData();
 
 
   // Handle container size changes
@@ -62,41 +60,6 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
     };
   }, []);
 
-  // Handle STL data from the StlExporter
-  const handleStlGenerated = useCallback((stlData: string) => {
-    if (stlData) {
-      setStl(stlData);
-      
-      // Save STL to server if we have a project ID
-      const projectId = code[0]?.project_id;
-      if (projectId) {
-        updateProjectScad({
-          path: { projectId },
-          body: { scad: stlData }
-        }).catch((error: Error) => {
-          console.error('Error saving STL:', error);
-        });
-      }
-    }
-  }, [code, setStl]);
-  
-  // Initialize the StlExporter
-  useEffect(() => {
-    initStlExporter(handleStlGenerated);
-    
-    return () => {
-      cleanupStlExporter();
-    };
-  }, [handleStlGenerated]);
-
-  // Execute code when it changes - generate STL with the utility
-  useEffect(() => {
-    if (code.length > 0) {
-      setIsLoading(true);
-      generateStl(code);
-    }
-  }, [code]);
-
   // Initial setup
   useEffect(() => {
     if (!containerRef.current || !containerSize.width || !containerSize.height) return;
@@ -106,10 +69,8 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
     sceneRef.current = scene;
     scene.background = new THREE.Color(0xffffff);
 
-    // Set up floor
+    
     setupFloor(scene);
-
-    // Set up lights
     setupLighting(scene);
 
     // Set up renderer

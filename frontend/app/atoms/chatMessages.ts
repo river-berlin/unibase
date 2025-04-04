@@ -1,25 +1,10 @@
 import { atom, useAtom } from 'jotai';
+import { GetChatHistoryResponses } from '../../client/types.gen';
 
-// Define the Message type here to avoid circular dependencies
-export interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string | Array<any>;
-  tool_calls: Array<{
-    id: string;
-    type: 'function';
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }> | null;
-  tool_outputs?: string;
-  object_id: string | null;
-  created_at: string;
-  error: string | null;
-}
+// Define the Message type from the chat history response array element type
+export type Message = GetChatHistoryResponses['200'][number];
 
-/**
+/** 
  * Atom for storing chat messages
  */
 export const chatMessagesAtom = atom<Message[]>([]);

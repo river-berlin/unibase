@@ -36,14 +36,6 @@ export default function Login() {
     }
   };
 
-  if (!isInitialized) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.card}>

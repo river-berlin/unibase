@@ -11,7 +11,7 @@ export function setupFloor(scene: THREE.Scene) {
     opacity: 0.5,
   });
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-  plane.position.y = -0.5;
+  plane.rotation.x = Math.PI / 2;
   plane.receiveShadow = true;
   scene.add(plane);
   return plane;

@@ -1,84 +1,104 @@
-import { MessageParam, ContentBlockParam, ImageBlockParam } from '@anthropic-ai/sdk/resources/messages';
-import Anthropic from '@anthropic-ai/sdk';
-import Messages from '../../../../database/models/messages';
-/**
- * Creates a user message for 3D model generation
- * @param instructions - User instructions
- * @param existingScad - Existing SCAD code (optional)
- * @param sceneImageBase64 - Base64 encoded image of the scene (optional)
- * @returns Complete user message
- */
-export function   createClaudePrompt(
-  instructions: string,
-  existingScad?: string,
-  sceneImageBase64?: string
-): MessageParam {
+import Messages, { MessageData } from '../../../../database/models/messages';
+import { ObjectWithMessageData } from '../../../../database/models';
+import { openai } from '@ai-sdk/openai';
+import { generateText, ImagePart, TextPart, UserContent } from 'ai';
+import { aiSdkTools } from '../../../../craftstool/tools';
+import { MODELING_SYSTEM_PROMPT } from './prompts';
 
-  const scadExistsTextContent : ContentBlockParam = {
-    type: "text",
-    text: `Given these instructions and the current 3D scene shown in the image, and the openscad code here - ${existingScad} - create or modify the scene using the available tools.\n\nInstructions: ${instructions}\n\nAlways think step by step and explain your reasoning before calling a tool.`
+function getFileContents(objects: ObjectWithMessageData[]): string{
+  let filesContent = '';
+  for (const object of objects) {
+    filesContent += `\n\n### File: ${object.filename || 'Unnamed file'} (ID: ${object.id})\n\`\`\`javascript\n${object.object}\n\`\`\``;
   }
 
-
-  const scadDoesNotExistTextContent : ContentBlockParam = {
-    type: "text",
-    text: `Given these instructions, create the scene in openscad using the available tools.`
+  if(objects.length == 0){
+    return "No files are currently present"
   }
 
-  let imageContent : ImageBlockParam | undefined;
-
-  if (sceneImageBase64) {
-    imageContent = {
-      type: "image",
-      source: {
-        type: 'base64',
-      media_type: 'image/png',
-        data: sceneImageBase64.split(',')[1] // remove the data:image/png;base64, prefix
-      }
-    }
-  }
-
-  let content : ContentBlockParam[] = [];
-
-  if (imageContent) {
-    content = [scadExistsTextContent, imageContent]
-  } else {
-    content = [scadDoesNotExistTextContent]
-  }
-
-  return {
-    role: 'user',
-    content: content
-  };
+  return filesContent
 }
 
 /**
- * Create a Claude completion
- * @param anthropic - Anthropic client
- * @param messages - Claude messages
- * @param tools - Tools to make available
- * @returns Claude completion
+ * Creates a user message for 3D model generation with JavaScript/ThreeJS
+ * @param instructions - User instructions
+ * @param existingContent - Existing JavaScript/ThreeJS code
+ * @param sceneImageBase64 - Base64 encoded image of the scene (optional)
+ * @param objects - Array of existing objects to modify (optional)
+ * @returns Complete user message
  */
-export async function createClaudeCompletion(
-  anthropic: Anthropic,
-  messages: MessageParam[],
-  tools: any[]
-) {
-  if (!process.env.CLAUDE_MODEL) {
-    throw new Error('CLAUDE_MODEL is not set');
+export function createPrompt(
+  instructions: string,
+  conversationId: string,
+  userId: string,
+  objects: ObjectWithMessageData[],
+  sceneImageBase64?: string,
+): MessageData {
+
+  // Format each file in a markdown code block with the filename
+  let filesContents = getFileContents(objects)
+
+  const textContent: TextPart = {
+    type: "text",
+    text: `
+    Current File Contents :
+    ${filesContents}
+    ----------
+    
+    User provided prompt :
+    ${instructions}`
   }
 
-  const message = await anthropic.messages.create({
-    model: process.env.CLAUDE_MODEL,
+  let content: UserContent = [textContent];
+  
+  if (sceneImageBase64) {
+    content.push({
+      type: "image",
+      image: sceneImageBase64.split(',')[1]
+    })
+  }
+
+  return {
+    role: "user",
+    conversation_id: conversationId,
+    content: Messages.normalizeMessageContent(content), // Keep the original content structure
+    created_by: userId
+  }
+}
+
+/**
+ * Create an llm completion
+ * @param messages - llm messages to generate stuff using
+ * @returns provided message + newly generated messages by the llm, you can store this in the database
+ */
+export async function createCompletion(
+  messages: MessageData[],
+  conversationId: string,
+  userId: string
+) : Promise<MessageData[]> {
+  if (!process.env.LLM_MODEL) {
+    throw new Error('LLM_MODEL is not set');
+  }
+
+  const newMessages : MessageData[] = [];
+
+  await generateText({
+    model: openai(process.env.LLM_MODEL),
     messages: messages,
-    max_tokens: 4000,
-    temperature: 0.7,
-    system: "You are a helpful 3D modeling assistant that uses OpenSCAD. You have access to tools that can help create and modify 3D models.",
-    tools: tools,
-    tool_choice: { type: "auto" }
+    system: MODELING_SYSTEM_PROMPT,
+    tools : aiSdkTools,
+    maxSteps: 3,
+    seed: 0,
+    onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+      newMessages.push({
+        role: 'assistant',
+        content: text,
+        tool_calls: toolCalls,
+        tool_output: toolResults,
+        conversation_id: conversationId,
+        created_by: userId
+      });
+    },
   });
 
-  message.content = Messages.normalizeMessage(message.content);
-
-  return message;
+  return [...messages, ...newMessages];
 } 

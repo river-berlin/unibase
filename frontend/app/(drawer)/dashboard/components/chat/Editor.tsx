@@ -1,24 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CodeEditor } from './CodeEditor';
-import { updateProjectCode } from '../../../../../client/sdk.gen';
-import { useProject, useCode } from '~/app/atoms';
+import { updateProjectCode, deleteProjectCode } from '../../../../../client/sdk.gen';
+import { useProject, useCode, useStlData } from '~/app/atoms';
 import { v4 as uuidv4 } from 'uuid';
+import { generateStl } from '../js-to-stl-logic/StlExporter';
 
 export function Editor() {
   const { code, setCode } = useCode();
   const { project } = useProject();
+  const { setStl } = useStlData();
   const [activeTab, setActiveTab] = useState(0);
+  const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  if (!project) return null;
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Function to update code on the server asynchronously
-  const updateCodeOnServer = (codeContent: string, objectId?: string) => {
-    console.log("--- project id is", project.id)
+  const updateCodeOnServer = (codeContent: string, objectId?: string, filename?: string, filepath?: string) => {
+    if (!project) return;
+    
     updateProjectCode({
       path: { projectId: project.id },
       body: { 
         object: codeContent,
-        id: objectId
+        id: objectId,
+        filename: filename,
+        filepath: filepath
       }
     }).then(response => {
       // Optionally update with server data if needed
@@ -39,6 +56,8 @@ export function Editor() {
   };
 
   const saveCode = async (newCodeContent: string, index: number) => {
+    if (!project) return;
+    
     // Update the code at the specific index immediately for responsive UI
     const updatedCode = [...code];
     
@@ -49,14 +68,19 @@ export function Editor() {
         object: newCodeContent,
         updated_at: new Date().toISOString() // Update the timestamp
       };
+      // Preserve existing filename and filepath if they exist
     } else {
       // Create a new code object if it doesn't exist
+      const filename = `code_${index + 1}.js`;
+      const filepath = `/project/${project.id}/`;
       updatedCode[index] = {
         id: `temp-${Date.now()}`, // Temporary ID until saved on server
         object: newCodeContent,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        project_id: project.id
+        project_id: project.id,
+        filename: filename,
+        filepath: filepath
       };
     }
     
@@ -64,31 +88,52 @@ export function Editor() {
     setCode(updatedCode);
 
     // Update the server in the background
-    updateCodeOnServer(newCodeContent, updatedCode[index]?.id);
+    updateCodeOnServer(
+      newCodeContent, 
+      updatedCode[index]?.id, 
+      updatedCode[index]?.filename, 
+      updatedCode[index]?.filepath
+    );
   };
 
   const handleTabChange = (index: number) => {
     setActiveTab(index);
+    setDropdownOpen(null); // Close dropdown when changing tabs
   };
 
   const handleAddTab = () => {
+    if (!project) return;
+    
     const newId = uuidv4();
+    const filename = `code_${code.length + 1}.js`;
+    const filepath = `/project/${project.id}/`;
     const newCodeObject = {
       id: newId,
       object: '// New code file',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      project_id: project.id
+      project_id: project.id,
+      filename: filename,
+      filepath: filepath
     };
-    setCode([...code, newCodeObject]);
+    const updatedCode = [...code, newCodeObject];
+    setCode(updatedCode);
     setActiveTab(code.length); // Set the active tab to the new tab
     
     // Save the new object to the server with the UUID
-    updateCodeOnServer('// New code file', newId);
+    updateCodeOnServer('// New code file', newId, filename, filepath);
   };
 
-  const handleRemoveTab = (indexToRemove: number) => {
-    if (code.length <= 1) return; // Don't remove the last tab
+  const handleRemoveTab = async (indexToRemove: number) => {
+    if (code.length <= 1 || !project) return; // Don't remove the last tab
+
+    const removedCode = code[indexToRemove];
+
+    if(!removedCode.id) return;
+
+    await deleteProjectCode({
+      path : { objectId : removedCode.id }
+    })
     
     const newCode = code.filter((_, index: number) => index !== indexToRemove);
     setCode(newCode);
@@ -99,22 +144,83 @@ export function Editor() {
     }
   };
 
+  const handleRename = (index: number, newName: string) => {
+    if (!project) return;
+    
+    const updatedCode = [...code];
+    const fileToRename = updatedCode[index];
+    
+    if (fileToRename && fileToRename.id && fileToRename.object) {
+      // Update the filename
+      fileToRename.filename = newName;
+      
+      // Update the UI immediately
+      setCode(updatedCode);
+      
+      // Update the server
+      updateCodeOnServer(
+        fileToRename.object,
+        fileToRename.id,
+        newName,
+        fileToRename.filepath || `/project/${project.id}/`
+      );
+    }
+  };
+
+  const handleTabNameEdit = (index: number, event: React.FormEvent<HTMLSpanElement>) => {
+    const newName = event.currentTarget.textContent || '';
+    if (newName.trim()) {
+      handleRename(index, newName.trim());
+    }
+  };
+  
+  // Initialize StlExporter and generate STL when code changes
+  useEffect(() => {
+    if (!project) return;
+
+    if (code && code.length > 0) {
+      let combinedCode = "";
+
+      for (let c of code){
+        combinedCode += c.object + "\n";
+      }
+
+      generateStl(combinedCode).then((stlData) => {
+        setStl(stlData);
+      });
+    }
+  }, [code, project]);
+
   return (
     <div className="border-t border-gray-200">
       <div className="bg-gray-50 px-4 py-2 flex items-center">
         <div className="flex-1 flex space-x-1 overflow-x-auto">
-          {code.map((_, index: number) => (
-            <button
-              key={index}
-              className={`px-3 py-1 text-sm font-medium rounded-t-md ${
-                activeTab === index
-                  ? 'bg-white text-blue-600 border border-gray-200 border-b-white'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-              }`}
-              onClick={() => handleTabChange(index)}
-            >
-              {`File ${index + 1}`}
-            </button>
+          {code.map((codeObj, index: number) => (
+            <div key={index} className="relative flex items-center">
+              <button
+                className={`px-3 py-1 text-sm font-medium rounded-t-md flex items-center space-x-1 ${
+                  activeTab === index
+                    ? 'bg-white text-blue-600 border border-gray-200 border-b-white'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                onClick={() => handleTabChange(index)}
+              >
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleTabNameEdit(index, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+                >
+                  {codeObj.filename}
+                </span>
+              </button>
+            </div>
           ))}
         </div>
         <div className="flex space-x-2 ml-4">
@@ -141,12 +247,12 @@ export function Editor() {
         </div>
       </div>
       
-      {code.length > 0 && (
+      {code.length > 0 && project && (
         <CodeEditor
-          code={code[activeTab].object || ''}
+          code={code[activeTab]?.object || ''}
           onCodeChange={(newCode: string) => saveCode(newCode, activeTab)}
         />
       )}
     </div>
   );
-} 
+}

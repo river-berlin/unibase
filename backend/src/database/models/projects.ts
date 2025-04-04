@@ -17,6 +17,7 @@ export interface ProjectData {
   last_modified_by?: string;
   created_at?: string;
   updated_at?: string;
+  use_for_training?: boolean | number;
 }
 
 /**
@@ -54,7 +55,8 @@ class Projects extends BaseModel {
       created_by: data.created_by,
       last_modified_by: data.created_by,
       created_at: now,
-      updated_at: now
+      updated_at: now,
+      use_for_training: data.use_for_training !== undefined ? data.use_for_training : 0
     };
 
     return this.create<ProjectData>(projectData, transaction);
@@ -150,6 +152,18 @@ class Projects extends BaseModel {
    */
   async moveToFolder(id: string, folderId: string | null, userId: string, transaction: DB = db): Promise<ProjectData> {
     return this.updateProject(id, { folder_id: folderId }, userId, transaction);
+  }
+
+  /**
+   * Mark or unmark a project for training
+   * @param id - Project ID
+   * @param useForTraining - Whether to use for training (true/false)
+   * @param userId - User ID making the update
+   * @param transaction - Optional transaction object
+   * @returns Updated project
+   */
+  async setTrainingStatus(id: string, useForTraining: boolean, userId: string, transaction: DB = db): Promise<ProjectData> {
+    return this.updateProject(id, { use_for_training: useForTraining ? 1 : 0 }, userId, transaction);
   }
 }
 

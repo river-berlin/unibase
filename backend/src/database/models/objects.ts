@@ -11,6 +11,8 @@ export interface ObjectData {
   created_at?: string;
   updated_at?: string;
   project_id: string;
+  filepath?: string;
+  filename?: string;
 }
 
 /**
@@ -41,28 +43,13 @@ class Objects extends BaseModel {
       id: data.id || uuidv4(),
       object: data.object,
       project_id: data.project_id,
+      filepath: data.filepath,
+      filename: data.filename,
       created_at: now,
       updated_at: now
     };
 
     return this.create<ObjectData>(objectData, transaction);
-  }
-
-  /**
-   * Find objects by message ID
-   * @param messageId - Message ID
-   * @param transaction - Optional transaction object
-   * @returns Object or undefined
-   */
-  async findByMessage(messageId: string, transaction: DB = db): Promise<ObjectData | undefined> {
-    const query = `
-      SELECT o.* 
-      FROM ${this.tableName} o
-      JOIN messages m ON o.id = m.object_id
-      WHERE m.id = ?
-    `;
-    
-    return transaction.get<ObjectData>(query, [messageId]);
   }
 
   /**
@@ -122,17 +109,25 @@ class Objects extends BaseModel {
    * @param transaction - Optional transaction object
    * @returns Objects for the project
    */
-  async findByProject(projectId: string, transaction: DB = db): Promise<ObjectWithMessageData[]> {
+  async findByProject(projectId: string, transaction: DB = db): Promise<ObjectData[]> {
     const query = `
-      SELECT o.*, m.id as message_id, m.created_at as message_created_at 
-      FROM ${this.tableName} o
-      JOIN messages m ON o.id = m.object_id
-      JOIN conversations c ON m.conversation_id = c.id
-      WHERE c.project_id = ?
-      ORDER BY o.updated_at DESC
+      SELECT * 
+      FROM ${this.tableName}
+      WHERE project_id = ?
+      ORDER BY updated_at DESC
     `;
     
-    return transaction.all<ObjectWithMessageData>(query, [projectId]);
+    return transaction.all<ObjectData>(query, [projectId]);
+  }
+
+  /**
+   * Delete an object
+   * @param id - Object ID
+   * @param transaction - Optional transaction object
+   * @returns True if deleted, false if not found
+   */
+  async deleteObject(id: string, transaction: DB = db): Promise<boolean> {
+    return this.delete(id, transaction);
   }
 }
 
