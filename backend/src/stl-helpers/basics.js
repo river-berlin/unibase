@@ -1,10 +1,4 @@
-// Import map for Three.js and related libraries
-// This code isn't sanitized, and is directly run in the iframe
-// so be careful while passing user generated code here
-// maybe for safety, actually, just don't pass user generated code here
-
-// The content of basics.js as a string that will be available for import in the iframe
-export const BASICS = `// @ts-nocheck
+// @ts-nocheck
 /* This file is intentionally excluded from TypeScript type checking 
 It's some basic functions to make writing basic threejs code easier
 
@@ -215,4 +209,4 @@ export function toStl(scene, options = { binary: false }) {
   
   const exporter = new STLExporter();
   return exporter.parse(exportScene, options);
-}`;
+}

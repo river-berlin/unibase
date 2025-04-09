@@ -678,6 +678,47 @@ export type DeleteFolderByOwnerOrAdminResponses = {
 
 export type DeleteFolderByOwnerOrAdminResponse = DeleteFolderByOwnerOrAdminResponses[keyof DeleteFolderByOwnerOrAdminResponses];
 
+export type GetFileData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * The ID of the project
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/code/file';
+};
+
+export type GetFileErrors = {
+    /**
+     * Unauthorized - Invalid token
+     */
+    401: _Error;
+    /**
+     * File not found
+     */
+    404: unknown;
+    /**
+     * Server error - JWT_SECRET not configured
+     */
+    500: _Error;
+};
+
+export type GetFileError = GetFileErrors[keyof GetFileErrors];
+
+export type GetFileResponses = {
+    /**
+     * The JavaScript file content
+     */
+    200: string;
+};
+
+export type GetFileResponse = GetFileResponses[keyof GetFileResponses];
+
 export type CreateProjectWithConversationData = {
     body: {
         name: string;
@@ -1470,10 +1511,6 @@ export type GenerateObjectsResponses = {
      * Objects generated successfully
      */
     200: {
-        /**
-         * ID of the generated message in conversation
-         */
-        messageId?: string;
         /**
          * Chat messages generated during the process
          */

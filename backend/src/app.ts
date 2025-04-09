@@ -12,6 +12,8 @@ import { setupCors } from './middleware/cors';
 import { db as defaultDb,  DB} from './database/db';
 import webhookRouter from './routes/billing/webhook';
 import { authenticateToken } from './middleware/auth';
+import getFileRoute from './routes/projects/getFile';
+import path from 'path';
 
 interface AppServices {
   db?: DB;
@@ -48,6 +50,15 @@ export function createApp({
 
   // Set instances in app locals for route handlers to access
   app.locals.db = db;
+
+  // Serve static files with cache control headers
+  app.use('/stl', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+  }, express.static(path.join(__dirname, '../static/stl')));
 
 
   // webhook router must be put seperately due to 
@@ -86,6 +97,10 @@ export function createApp({
     authenticateToken, 
     folderRoutes
   );
+
+  // the getFile route is directly put in the app.js file as that
+  // does not have any authentication involved
+  app.use("/projects", getFileRoute);
   
   app.use('/projects', 
     /* 
@@ -104,6 +119,8 @@ export function createApp({
     authenticateToken, 
     projectRoutes
   );
+
+
   
   app.use('/admin', 
     /* 

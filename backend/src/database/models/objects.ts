@@ -121,6 +121,35 @@ class Objects extends BaseModel {
   }
 
   /**
+   * Find an object by filename and optional filepath in a project
+   * @param projectId - Project ID
+   * @param filename - Filename to search for
+   * @param filepath - Optional filepath to search for
+   * @param transaction - Optional transaction object
+   * @returns Object or undefined if not found
+   */
+  async findByFilenameAndPath(projectId: string, filename: string, filepath: string = '', transaction: DB = db): Promise<ObjectData | undefined> {
+    let query = `
+      SELECT * 
+      FROM ${this.tableName}
+      WHERE project_id = ? AND filename = ?
+    `;
+    
+    const params = [projectId, filename];
+    
+    if (filepath) {
+      query += ` AND filepath = ?`;
+      params.push(filepath);
+    } else {
+      query += ` AND (filepath IS NULL OR filepath = '')`;
+    }
+    
+    query += ` LIMIT 1`;
+    
+    return transaction.get<ObjectData>(query, params);
+  }
+
+  /**
    * Delete an object
    * @param id - Object ID
    * @param transaction - Optional transaction object

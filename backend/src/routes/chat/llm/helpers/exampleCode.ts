@@ -2,10 +2,13 @@ export const JSExampleCode = `
 
 Example 1: Creating glasses
 \`\`\`javascript
+import * as THREE from "three";
+import { cuboid, cylinder, subtract, toStl } from "basics";
+
 // Create a pair of glasses
 function createGlasses() {
-  // Create a group to hold all parts of the glasses
-  const glasses = new THREE.Group();
+  // Create a scene
+  const scene = new THREE.Scene();
   
   // Material for the frames
   const frameMaterial = new THREE.MeshPhongMaterial({
@@ -33,7 +36,7 @@ function createGlasses() {
     frameMaterial
   );
   leftRim.position.set(-0.7, 0, 0);
-  glasses.add(leftRim);
+  scene.add(leftRim);
   
   // Right rim
   const rightRim = new THREE.Mesh(
@@ -41,7 +44,7 @@ function createGlasses() {
     frameMaterial
   );
   rightRim.position.set(0.7, 0, 0);
-  glasses.add(rightRim);
+  scene.add(rightRim);
   
   // Bridge (connecting the rims)
   const bridge = new THREE.Mesh(
@@ -49,7 +52,7 @@ function createGlasses() {
     frameMaterial
   );
   bridge.rotation.z = Math.PI / 2;
-  glasses.add(bridge);
+  scene.add(bridge);
   
   // Left lens
   const leftLens = new THREE.Mesh(
@@ -58,7 +61,7 @@ function createGlasses() {
   );
   leftLens.position.set(-0.7, 0, 0);
   leftLens.rotation.x = Math.PI / 2;
-  glasses.add(leftLens);
+  scene.add(leftLens);
   
   // Right lens
   const rightLens = new THREE.Mesh(
@@ -67,25 +70,29 @@ function createGlasses() {
   );
   rightLens.position.set(0.7, 0, 0);
   rightLens.rotation.x = Math.PI / 2;
-  glasses.add(rightLens);
+  scene.add(rightLens);
   
-  // Position the whole glasses group
-  glasses.position.set(0, 0, 0);
-  
-  return glasses;
+  return scene;
 }
 
-// Add the glasses to the scene
-const glasses = createGlasses();
-scene.add(glasses);
+// Create and return the glasses
+const scene = createGlasses();
+
+// Export scene to STL
+export function generateStls() {
+  return [toStl(scene)];
+}
 \`\`\`
 
 Example 2: Creating a snowman
 \`\`\`javascript
+import * as THREE from "three";
+import { sphere, cylinder, cone, toStl } from "basics";
+
 // Create a snowman
 function createSnowman() {
-  // Create a group for the snowman
-  const snowman = new THREE.Group();
+  // Create a scene
+  const scene = new THREE.Scene();
   
   // Snow material (white and slightly shiny)
   const snowMaterial = new THREE.MeshPhongMaterial({
@@ -111,7 +118,7 @@ function createSnowman() {
     snowMaterial
   );
   bottomSphere.position.y = -0.75;
-  snowman.add(bottomSphere);
+  scene.add(bottomSphere);
   
   // Middle sphere
   const middleSphere = new THREE.Mesh(
@@ -119,7 +126,7 @@ function createSnowman() {
     snowMaterial
   );
   middleSphere.position.y = 0.3;
-  snowman.add(middleSphere);
+  scene.add(middleSphere);
   
   // Head sphere (smallest)
   const headSphere = new THREE.Mesh(
@@ -127,7 +134,7 @@ function createSnowman() {
     snowMaterial
   );
   headSphere.position.y = 1.0;
-  snowman.add(headSphere);
+  scene.add(headSphere);
   
   // Left eye
   const leftEye = new THREE.Mesh(
@@ -135,7 +142,7 @@ function createSnowman() {
     coalMaterial
   );
   leftEye.position.set(-0.1, 1.05, 0.3);
-  snowman.add(leftEye);
+  scene.add(leftEye);
   
   // Right eye
   const rightEye = new THREE.Mesh(
@@ -143,7 +150,7 @@ function createSnowman() {
     coalMaterial
   );
   rightEye.position.set(0.1, 1.05, 0.3);
-  snowman.add(rightEye);
+  scene.add(rightEye);
   
   // Carrot nose
   const nose = new THREE.Mesh(
@@ -152,7 +159,7 @@ function createSnowman() {
   );
   nose.position.set(0, 0.95, 0.35);
   nose.rotation.x = Math.PI / 2;
-  snowman.add(nose);
+  scene.add(nose);
   
   // Buttons
   for (let i = 0; i < 3; i++) {
@@ -161,23 +168,30 @@ function createSnowman() {
       coalMaterial
     );
     button.position.set(0, 0.3 - i * 0.2, 0.5);
-    snowman.add(button);
+    scene.add(button);
   }
   
-  return snowman;
+  return scene;
 }
 
-// Add the snowman to the scene
-const snowman = createSnowman();
-scene.add(snowman);
+// Create and return the snowman
+const scene = createSnowman();
+
+// Export scene to STL
+export function generateStls() {
+  return [toStl(scene)];
+}
 \`\`\`
 
 Example 3: Creating a simple table
 \`\`\`javascript
+import * as THREE from "three";
+import { cuboid, toStl } from "basics";
+
 // Create a simple table
 function createTable() {
-  // Create a group for the table
-  const table = new THREE.Group();
+  // Create a scene
+  const scene = new THREE.Scene();
   
   // Wood material for the table
   const woodMaterial = new THREE.MeshPhongMaterial({
@@ -191,7 +205,7 @@ function createTable() {
     woodMaterial
   );
   tableTop.position.y = 0.75;
-  table.add(tableTop);
+  scene.add(tableTop);
   
   // Table legs
   const legGeometry = new THREE.BoxGeometry(0.1, 1.5, 0.1);
@@ -199,50 +213,32 @@ function createTable() {
   // Front left leg
   const frontLeftLeg = new THREE.Mesh(legGeometry, woodMaterial);
   frontLeftLeg.position.set(-0.9, 0, 0.4);
-  table.add(frontLeftLeg);
+  scene.add(frontLeftLeg);
   
   // Front right leg
   const frontRightLeg = new THREE.Mesh(legGeometry, woodMaterial);
   frontRightLeg.position.set(0.9, 0, 0.4);
-  table.add(frontRightLeg);
+  scene.add(frontRightLeg);
   
   // Back left leg
   const backLeftLeg = new THREE.Mesh(legGeometry, woodMaterial);
   backLeftLeg.position.set(-0.9, 0, -0.4);
-  table.add(backLeftLeg);
+  scene.add(backLeftLeg);
   
   // Back right leg
   const backRightLeg = new THREE.Mesh(legGeometry, woodMaterial);
   backRightLeg.position.set(0.9, 0, -0.4);
-  table.add(backRightLeg);
+  scene.add(backRightLeg);
   
-  // Add a simple drawer
-  const drawerBody = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.2, 0.8),
-    woodMaterial
-  );
-  drawerBody.position.set(0, 0.65, 0);
-  table.add(drawerBody);
-  
-  // Drawer handle
-  const handleMaterial = new THREE.MeshPhongMaterial({
-    color: 0x555555,
-    shininess: 100
-  });
-  
-  const drawerHandle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8),
-    handleMaterial
-  );
-  drawerHandle.rotation.z = Math.PI / 2;
-  drawerHandle.position.set(0, 0.65, 0.45);
-  table.add(drawerHandle);
-  
-  return table;
+  return scene;
 }
 
-// Add the table to the scene
-const table = createTable();
-scene.add(table);
+// Create and return the table
+const scene = createTable();
+
+// Export scene to STL
+export function generateStls() {
+  return [toStl(scene)];
+}
 \`\`\`
 `;

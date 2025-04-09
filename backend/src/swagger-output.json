@@ -1605,6 +1605,88 @@
         ]
       }
     },
+    "/projects/{projectId}/code/file": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get a specific JS file from a project",
+        "description": "Retrieve a specific JavaScript file associated with a project by filename and optional filepath.",
+        "operationId": "getFile",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "The ID of the project",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JS file retrieved successfully",
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string",
+                  "description": "The JavaScript file content"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "404": {
+            "description": "File not found"
+          },
+          "500": {
+            "description": "Server error - JWT_SECRET not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/projects/": {
       "post": {
         "tags": [
@@ -3312,11 +3394,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "messageId": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "ID of the generated message in conversation"
-                    },
                     "messages": {
                       "type": "array",
                       "description": "Chat messages generated during the process",

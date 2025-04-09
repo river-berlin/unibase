@@ -23,4 +23,7 @@ router.use(getProjectScadCode);
 router.use(updateProjectCodeRoute);
 router.use(deleteProjectCodeRoute);
 
+// the getFile route is directly put in the app.js file as that
+// does not have any authentication involved
+
 export default router; 

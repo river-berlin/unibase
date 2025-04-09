@@ -80,11 +80,6 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
            schema: {
              type: 'object',
              properties: {
-               messageId: {
-                 type: 'string',
-                 format: 'uuid',
-                 description: 'ID of the generated message in conversation'
-               },
                messages: {
                  type: 'array',
                  description: 'Chat messages generated during the process',
@@ -248,7 +243,7 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
   const newMessages = await createCompletion([newUserMessage], conversation.id, req.user.userId);
   await Messages.addMessages(newMessages, db);
 
-  res.json({ messages : newMessages });
+  res.json(newMessages);
 });
 
 export default router; 

@@ -4,6 +4,7 @@ import Projects, { ProjectData } from '../../database/models/projects';
 import OrganizationMembers from '../../database/models/organization-members';
 import Folders from '../../database/models/folders';
 import Conversations from '../../database/models/conversations';
+import Objects from '../../database/models/objects';
 import { DB } from '../../database/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -216,7 +217,7 @@ router.post('/',
       created_by: req.user.userId
     };
 
-    // Use a transaction to create both the project and conversation
+    // Use a transaction to create the project, conversation, and default index.js file
     const project = await db.transaction(async (tx : DB) => {
       // Create the project
       const newProject = await Projects.createProject(projectData, tx);
@@ -228,6 +229,38 @@ router.post('/',
         model: process.env.LLM_MODEL as string,
         status: 'active',
         updated_at: new Date().toISOString()
+      }, tx);
+      
+      // Create default index.js file
+      const defaultIndexContent = `import { cuboid, toStl } from 'basics';
+import * as THREE from "three";
+
+const scene = new THREE.Scene();
+// Your 3D model code goes here
+
+// Example: Create a simple cube
+const cube = cuboid({
+  position: { x: 0, y: 0, z: 0 },
+  width: 10,
+  height: 10,
+  depth: 10,
+  color: 0x6699ff
+});
+
+// Add the cube to the scene
+scene.add(cube);
+
+export function generateStls(){
+  return [toStl(scene)]
+}
+`;
+      
+      await Objects.createObject({
+        id: uuidv4(),
+        project_id: newProject.id as string,
+        object: defaultIndexContent,
+        filename: 'index.js',
+        filepath: ''
       }, tx);
       
       return newProject;

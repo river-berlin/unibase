@@ -3,7 +3,7 @@ import { CodeEditor } from './CodeEditor';
 import { updateProjectCode, deleteProjectCode } from '../../../../../client/sdk.gen';
 import { useProject, useCode, useStlData } from '~/app/atoms';
 import { v4 as uuidv4 } from 'uuid';
-import { generateStl } from '../js-to-stl-logic/StlExporter';
+import { runAndGenerateStls } from '../js-to-stl-logic/StlGenerator';
 
 export function Editor() {
   const { code, setCode } = useCode();
@@ -178,15 +178,10 @@ export function Editor() {
   useEffect(() => {
     if (!project) return;
 
-    if (code && code.length > 0) {
-      let combinedCode = "";
-
-      for (let c of code){
-        combinedCode += c.object + "\n";
-      }
-
-      generateStl(combinedCode).then((stlData) => {
-        setStl(stlData);
+    if (code && code.length > 0) {      
+      // Call generateStl with the new signature
+      runAndGenerateStls(project.id).then((stlData) => {
+        setStl(stlData[0]);
       });
     }
   }, [code, project]);
