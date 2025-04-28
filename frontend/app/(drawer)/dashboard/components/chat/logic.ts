@@ -39,6 +39,8 @@ const response = await generateObjects({
   });
   
   let newMessages: Message[] = [];
+
+  console.log("-- x -- response", response);
   
   if (response.data) {
     // Process messages if present
@@ -54,6 +56,8 @@ const response = await generateObjects({
       }));
     }
   }
+
+  console.log("-- x -- newMessages", newMessages);
 
   return newMessages;
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useProject } from '~/app/atoms';
 import { updateProjectAttributes } from '../../../../../client/sdk.gen';
 import type { UpdateProjectAttributesData } from '../../../../../client/types.gen';
 import { Toggle } from './Toggle';
+import { Ionicons } from '@expo/vector-icons';
 
 /**
  * Component to display and manage training data status
@@ -12,6 +13,7 @@ export function TrainingStatus() {
   const { project, setProject } = useProject();
   const [isTrainingData, setIsTrainingData] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Initialize state when project changes
   useEffect(() => {
@@ -70,32 +72,44 @@ export function TrainingStatus() {
   };
 
   return (
-    <View className="p-2">
-      <View className="mb-2">
-        <Toggle
-          value={isTrainingData}
-          onChange={handleToggleChange}
-          label="Use for training data"
-          className="justify-start"
+    <View className="p-2">  
+      {/* Collapsible training status section */}
+      <Pressable 
+        onPress={() => setIsExpanded(!isExpanded)}
+        className="flex-row items-center mt-1 mb-1"
+      >
+        <Ionicons 
+          name={isExpanded ? "chevron-down" : "chevron-forward"} 
+          size={16} 
+          color="#6b7280" 
         />
-      </View>
+        <Text className="text-xs text-gray-500 ml-1">Training Status</Text>
+      </Pressable>
       
-      {/* Training status indicators - read-only */}
-      <View className="mt-2 p-2 bg-gray-100 rounded-md">
-        <Text className="text-xs text-gray-500 mb-1">Training Status</Text>
-        <View className="flex-row justify-between">
-          <Text className="text-xs">Trained:</Text>
-          <Text className="text-xs font-medium">
-            {project.already_trained ? 'Yes' : 'No'}
-          </Text>
+      {isExpanded && (
+        <View className="p-2 bg-gray-100 rounded-md">
+          <View className="mb-2">
+            <Toggle
+              value={isTrainingData}
+              onChange={handleToggleChange}
+              label="Use for training data"
+              className="justify-start"
+            />
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-xs">Trained:</Text>
+            <Text className="text-xs font-medium">
+              {project.already_trained ? 'Yes' : 'No'}
+            </Text>
+          </View>
+          <View className="flex-row justify-between mt-1">
+            <Text className="text-xs">Last trained:</Text>
+            <Text className="text-xs font-medium">
+              {formatDate(project.trained_at)}
+            </Text>
+          </View>
         </View>
-        <View className="flex-row justify-between mt-1">
-          <Text className="text-xs">Last trained:</Text>
-          <Text className="text-xs font-medium">
-            {formatDate(project.trained_at)}
-          </Text>
-        </View>
-      </View>
+      )}
     </View>
   );
 }

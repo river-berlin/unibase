@@ -232,27 +232,27 @@ router.post('/',
       }, tx);
       
       // Create default index.js file
-      const defaultIndexContent = `import { cuboid, toStl } from 'basics';
-import * as THREE from "three";
+      const defaultIndexContent = `import { cylinder, Object3D } from 'basics';
 
-const scene = new THREE.Scene();
-// Your 3D model code goes here
+export function wheel({width = 5, position = { x: 0, y: 0, z: 0 }, rotation = { z: Math.PI / 2 }} = {}) {
+  const outerRim = cylinder({
+    position,
+    rotation,
+    radius: 5,
+    height: width,
+  });
 
-// Example: Create a simple cube
-const cube = cuboid({
-  position: { x: 0, y: 0, z: 0 },
-  width: 10,
-  height: 10,
-  depth: 10,
-  color: 0x6699ff
-});
+  const innerRim = cylinder({
+    position,
+    rotation,
+    radius: 4.5,
+    height: width,
+  });
 
-// Add the cube to the scene
-scene.add(cube);
-
-export function generateStls(){
-  return [toStl(scene)]
+  return outerRim.subtract(innerRim);
 }
+
+export const object = wheel({width : 3});
 `;
       
       await Objects.createObject({

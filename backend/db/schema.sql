@@ -10,7 +10,7 @@ CREATE TABLE users (
   last_login_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
-, stripe_customer_id TEXT);
+, stripe_customer_id TEXT, username TEXT);
 CREATE INDEX users_is_admin_idx ON users (is_admin);
 CREATE TABLE organizations (
   id TEXT PRIMARY KEY,
@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS "messages" (
     updated_at TEXT
 , already_trained BOOLEAN DEFAULT FALSE, trained_at TEXT DEFAULT NULL);
 CREATE INDEX idx_messages_already_trained ON messages(already_trained);
+CREATE UNIQUE INDEX users_username_idx ON users (username);
 -- Dbmate schema migrations
 INSERT INTO "schema_migrations" (version) VALUES
   ('20240701000000'),
@@ -109,4 +110,5 @@ INSERT INTO "schema_migrations" (version) VALUES
   ('20250324163845'),
   ('20250325000000'),
   ('20250402094229'),
-  ('20250404191952');
+  ('20250404191952'),
+  ('20250414110500');

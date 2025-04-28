@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSCAD Extrusion Examples</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #scene-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    #code-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      max-width: 50%;
+      z-index: 100;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/exporters/STLExporter": "https://unpkg.com/three@0.160.0/examples/jsm/exporters/STLExporter.js",
+        "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+        "three-csg-ts": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/index.js",
+        "three-csg-ts/src/Polygon": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Polygon.js",
+        "three-csg-ts/src/Vertex": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vertex.js",
+        "three-csg-ts/src/Vector": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vector.js",
+        "basics": "./basics.js",
+        "basics.js": "./basics.js",
+        "./shapes/cuboid.js": "./shapes/cuboid.js",
+        "./shapes/sphere.js": "./shapes/sphere.js",
+        "./shapes/cylinder.js": "./shapes/cylinder.js",
+        "./shapes/cone.js": "./shapes/cone.js",
+        "./shapes/polygon.js": "./shapes/polygon.js",
+        "./shapes/operations.js": "./shapes/operations.js",
+        "./shapes/export.js": "./shapes/export.js",
+        "./shapes/object.js": "./shapes/object.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="scene-container"></div>
+  
+  <div id="code-container">
+    <p>Mouse controls: Left-click and drag to rotate, right-click and drag to pan, scroll to zoom.</p>
+    <p><strong>OpenSCAD Compatibility Examples</strong></p>
+    <p>Linear extrude (left) - Rotate extrude (right)</p>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+    import { STLExporter } from 'three/examples/jsm/exporters/STLExporter';
+    import * as basics from 'basics';
+    import { polygon } from './shapes/polygon.js';
+
+    // Set up the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x333333);
+    
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 50;
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.getElementById('scene-container').appendChild(renderer.domElement);
+    
+    // Add orbit controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    backLight.position.set(-1, -1, -1);
+    scene.add(backLight);
+    
+    const axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    // Function to create text labels
+    function createTextLabel(text, position) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 64;
+      
+      context.fillStyle = 'rgba(0, 0, 0, 0)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      context.fillStyle = '#ffffff';
+      context.font = 'Bold 20px Arial';
+      context.textAlign = 'center';
+      context.fillText(text, 128, 32);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      sprite.scale.set(10, 5, 1);
+      sprite.position.copy(position);
+      return sprite;
+    }
+    
+    // Function to render our 3D objects
+    async function renderObjects() {
+      console.log('Creating OpenSCAD compatibility examples...');
+      
+      // EXAMPLE 1: Basic Linear Extrude
+      // Create a square shape (direct object with points and paths)
+      const squareShape = {
+        points: [
+          -10, -10, // Bottom-left
+          10, -10,  // Bottom-right
+          10, 10,   // Top-right
+          -10, 10   // Top-left
+        ],
+        paths: [[0, 1, 2, 3]] // Connect points in order
+      };
+      
+      // Linear extrude the square
+      const basicSquare = basics.linear_extrude({
+        height: 10,
+        position: { x: -30, y: 10, z: 0 },
+        color: 0x22cc88, // Green color
+        shape: squareShape
+      });
+      scene.add(basicSquare.render());
+      scene.add(createTextLabel('BASIC SQUARE', { x: -30, y: 25, z: 0 }));
+      
+      // EXAMPLE 2: Linear Extrude with Twist
+      // Create another square shape
+      const twistSquareShape = {
+        points: [
+          -8, -8,  // Bottom-left
+          8, -8,   // Bottom-right
+          8, 8,    // Top-right
+          -8, 8    // Top-left
+        ],
+        paths: [[0, 1, 2, 3]] // Connect points in order
+      };
+      
+      // Linear extrude the square with a twist
+      const twistedSquare = basics.linear_extrude({
+        height: 20,
+        twist: 90, // 90 degree twist from bottom to top
+        slices: 20, // More slices for smoother twist
+        position: { x: -30, y: -15, z: 0 },
+        color: 0x2288cc, // Blue-green color
+        shape: twistSquareShape
+      });
+      scene.add(twistedSquare.render());
+      scene.add(createTextLabel('TWISTED SQUARE', { x: -30, y: -30, z: 0 }));
+      
+      // EXAMPLE 3: Basic Rotate Extrude
+      // Create a profile shape for rotation
+      const cylinderProfileShape = {
+        points: [
+          5, -10,  // Bottom inner point
+          10, -10, // Bottom outer point
+          10, 10,  // Top outer point
+          5, 10    // Top inner point
+        ],
+        paths: [[0, 1, 2, 3]] // Connect points in order
+      };
+      
+      // Rotate extrude the profile to create a cylinder-like shape
+      const basicRotate = basics.rotate_extrude({
+        angle: 360,
+        segments: 32,
+        position: { x: 30, y: 10, z: 0 },
+        color: 0x4488ff, // Blue color
+        shape: cylinderProfileShape
+      });
+      scene.add(basicRotate.render());
+      scene.add(createTextLabel('BASIC CYLINDER', { x: 30, y: 25, z: 0 }));
+      
+      // EXAMPLE 4: Complex Rotate Extrude
+      // Create a more interesting profile for a vase or goblet
+      const gobletProfileShape = {
+        points: [
+          3, -10,   // Base inner point
+          10, -10,  // Base outer point
+          8, -5,    // Narrowing towards stem
+          4, 0,     // Stem
+          4, 5,     // Stem top
+          12, 10,   // Cup outer rim
+          10, 10,   // Cup inner rim
+          3, 5      // Connect back to stem
+        ],
+        paths: [[0, 1, 2, 3, 4, 5, 6, 7]] // Connect all points in order
+      };
+      
+      // Rotate extrude the profile to create a goblet/vase
+      const vaseProfile = basics.rotate_extrude({
+        angle: 360,
+        segments: 32,
+        position: { x: 30, y: -15, z: 0 },
+        color: 0xcc8844, // Orange/gold color
+        shape: gobletProfileShape
+      });
+      scene.add(vaseProfile.render());
+      scene.add(createTextLabel('GOBLET PROFILE', { x: 30, y: -30, z: 0 }));
+      
+      console.log('All OpenSCAD compatibility examples created successfully!');
+    }
+    
+    // Run the rendering function
+    renderObjects();
+  </script>
+</body>
+</html>

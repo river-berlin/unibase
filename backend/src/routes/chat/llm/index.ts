@@ -239,11 +239,11 @@ router.post('/:projectId/generate-objects', authenticateToken, async (req: Authe
   }
 
   //const history = await Messages.getMessages(projectId, db);
-  const newUserMessage = createPrompt(instructions, conversation.id, req.user.userId, objects, base64Image);
+  const newUserMessage = createPrompt(instructions, conversation.id, req.user.userId, objects);
   const newMessages = await createCompletion([newUserMessage], conversation.id, req.user.userId);
   await Messages.addMessages(newMessages, db);
 
-  res.json(newMessages);
+  res.json({messages: newMessages});
 });
 
 export default router; 

@@ -8,7 +8,7 @@ import { runAndGenerateStls } from '../js-to-stl-logic/StlGenerator';
 export function Editor() {
   const { code, setCode } = useCode();
   const { project } = useProject();
-  const { setStl } = useStlData();
+  const { setStl, isGeneratingStl, setIsGeneratingStl } = useStlData();
   const [activeTab, setActiveTab] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -176,14 +176,17 @@ export function Editor() {
   
   // Initialize StlExporter and generate STL when code changes
   useEffect(() => {
-    if (!project) return;
-
-    if (code && code.length > 0) {      
-      // Call generateStl with the new signature
-      runAndGenerateStls(project.id).then((stlData) => {
-        setStl(stlData[0]);
-      });
+    if(!project) return;
+    console.log("generating stuff! for project id", project.id)
+    async function generateStls(){
+      if (!project) return;
+      if (code && code.length > 0) {
+        const stlData = await runAndGenerateStls(project.id)
+        setStl(stlData);
+      }
     }
+
+    generateStls();
   }, [code, project]);
 
   return (

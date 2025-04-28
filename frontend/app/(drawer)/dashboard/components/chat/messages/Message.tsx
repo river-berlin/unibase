@@ -15,6 +15,7 @@ interface ReasoningProps {
 }
 
 export function Message({ content, toolCalls }: ReasoningProps) {
+  console.log("-- x -- content", content)
   return (
     <View>
       {content && content.map((item, index) => {

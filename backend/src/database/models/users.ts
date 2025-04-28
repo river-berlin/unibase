@@ -7,6 +7,7 @@ export interface UserData {
   id?: string;
   email: string;
   name: string;
+  username?: string;
   password?: string; // Only used for creation, not stored
   password_hash?: string;
   salt?: string;
@@ -38,10 +39,14 @@ class Users extends BaseModel {
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = this.hashPassword(data.password, salt);
     
+    // Generate a username if not provided
+    const username = data.username || await this.generateUniqueUsername(data.name);
+    
     const userData: UserData = {
       id: data.id || uuidv4(),
       email: data.email.toLowerCase(),
       name: data.name,
+      username: username,
       password_hash: passwordHash,
       salt: salt,
       is_admin: data.is_admin ? 1 : 0,
@@ -238,12 +243,50 @@ class Users extends BaseModel {
   /**
    * Hash a password with the given salt
    * @param password - Plain text password
-   * @param salt - Salt
+   * @param salt - Salt for hashing
    * @returns Hashed password
    */
   hashPassword(password: string, salt: string): string {
-    return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    return crypto
+      .pbkdf2Sync(password, salt, 1000, 64, 'sha512')
+      .toString('hex');
+  }
+  
+  /**
+   * Generate a unique username based on the user's name
+   * @param name - User's name
+   * @param transaction - Optional transaction object
+   * @returns A unique username
+   */
+  async generateUniqueUsername(name: string, transaction: DB = db): Promise<string> {
+    // Convert name to lowercase, replace spaces with underscores, and remove special characters
+    let baseUsername = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    
+    // If the base username is empty or too short, use a default
+    if (baseUsername.length < 3) {
+      baseUsername = 'user';
+    }
+    
+    // Try the base username first
+    let username = baseUsername;
+    let counter = 1;
+    
+    // Keep trying until we find a unique username
+    while (true) {
+      // Check if the username exists
+      const query = `SELECT id FROM ${this.tableName} WHERE username = ?`;
+      const existingUser = await transaction.get(query, [username]);
+      
+      // If no user found with this username, it's unique
+      if (!existingUser) {
+        return username;
+      }
+      
+      // Try with a number appended
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
   }
 }
 
-export default new Users(); 
+export default new Users();

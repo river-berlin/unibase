@@ -1,6 +1,10 @@
 import Messages, { MessageData } from '../../../../database/models/messages';
 import { ObjectWithMessageData } from '../../../../database/models';
 import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
+import { anthropic } from '@ai-sdk/anthropic';
+import { openrouter } from '@openrouter/ai-sdk-provider';
+
 import { generateText, ImagePart, TextPart, UserContent } from 'ai';
 import { aiSdkTools } from '../../../../craftstool/tools';
 import { MODELING_SYSTEM_PROMPT } from './prompts';
@@ -30,8 +34,7 @@ export function createPrompt(
   instructions: string,
   conversationId: string,
   userId: string,
-  objects: ObjectWithMessageData[],
-  sceneImageBase64?: string,
+  objects: ObjectWithMessageData[]
 ): MessageData {
 
   // Format each file in a markdown code block with the filename
@@ -50,13 +53,6 @@ export function createPrompt(
 
   let content: UserContent = [textContent];
   
-  if (sceneImageBase64) {
-    content.push({
-      type: "image",
-      image: sceneImageBase64.split(',')[1]
-    })
-  }
-
   return {
     role: "user",
     conversation_id: conversationId,
@@ -81,17 +77,37 @@ export async function createCompletion(
 
   const newMessages : MessageData[] = [];
 
+  let model;
+
+  if (process.env.LLM_PROVIDER === 'openai') {
+    model = openai(process.env.LLM_MODEL);
+  } else if (process.env.LLM_PROVIDER === 'anthropic') {
+    model = anthropic(process.env.LLM_MODEL);
+  } else if (process.env.LLM_PROVIDER === 'google') {
+    model = google(process.env.LLM_MODEL);
+  } else if (process.env.LLM_PROVIDER === 'openrouter') {
+    model = openrouter(process.env.LLM_MODEL);
+  } else {
+    throw new Error('Invalid LLM_PROVIDER');
+  }
+    
+  
+
   await generateText({
-    model: openai(process.env.LLM_MODEL),
-    messages: messages,
+    model,
+    messages,
     system: MODELING_SYSTEM_PROMPT,
     tools : aiSdkTools,
     maxSteps: 3,
     seed: 0,
-    onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+    onStepFinish(response) {
+      const { stepType, text, toolCalls, toolResults, finishReason, usage } = response
+
+      console.log("response-->", response)
+      
       newMessages.push({
         role: 'assistant',
-        content: text,
+        content: Messages.normalizeMessageContent(text),
         tool_calls: toolCalls,
         tool_output: toolResults,
         conversation_id: conversationId,

@@ -60,7 +60,7 @@ export const filetool: ToolFunction<FileOperation> = async (lmparams) => {
                     object: newContent
                 });
 
-                return `Updated JavaScript/ThreeJS file content successfully for object ID: ${operation.objectId}`;
+                return `Updated JavaScript/ThreeJS file content successfully for object ID: ${operation.objectId}, now just let the user know that it has been updated :)`;
             }
 
             case 'create': {
@@ -77,7 +77,7 @@ export const filetool: ToolFunction<FileOperation> = async (lmparams) => {
                     updated_at: new Date().toISOString()
                 });
 
-                return `Created new JavaScript/ThreeJS file successfully with ID: ${newObject.id}`;
+                return `Created new JavaScript/ThreeJS file successfully with ID: ${newObject.id}, now just let the user know that it has been updated :)`;
             }
 
             case 'delete': {
@@ -92,7 +92,7 @@ export const filetool: ToolFunction<FileOperation> = async (lmparams) => {
 
                 await Objects.deleteObject(operation.objectId);
 
-                return `Deleted file successfully with ID: ${operation.objectId}`;
+                return `Deleted file successfully with ID: ${operation.objectId}, now just let the user know that it has been updated :)`;
             }
 
             default:

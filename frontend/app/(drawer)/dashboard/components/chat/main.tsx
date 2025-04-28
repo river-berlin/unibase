@@ -16,19 +16,22 @@ export function Chat() {
   const {project} = useProject()
   const [keepInput, setKeepInput] = useState(false);
   const {setCode} = useCode();
-  const {addMessages} = useChatMessages();
-  
+  const {setAllMessages} = useChatMessages();
 
   useEffect(() => {
     if(!project) return;
 
-    fetchCode(project.id)
-      .then(code => setCode(code))
-      .catch(error => console.error('Error fetching OpenSCAD code:', error));
+    async function fetchProjectData() {
+      if(!project) return;
 
-    fetchHistory(project.id)
-      .then(newMessages => addMessages(newMessages))
-      .catch(error => console.error('Error fetching chat history:', error));
+      const code = await fetchCode(project.id)
+      setCode(code)
+
+      const history = await fetchHistory(project.id)
+      setAllMessages(history)
+    }
+
+    fetchProjectData();
   }, [project]);
 
 

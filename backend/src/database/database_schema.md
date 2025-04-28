@@ -11,6 +11,7 @@ Stores user account information.
 | id           | text    | Primary key, UUID                              | PK    |
 | email        | text    | User's email address                           | UQ    |
 | name         | text    | User's full name                               |       |
+| username     | text    | User's unique username                         | UQ    |
 | password_hash| text    | Bcrypt hashed password                         |       |
 | salt         | text    | Password salt for additional security          |       |
 | is_admin     | integer | Whether user has admin privileges (0 or 1)     | IDX   |

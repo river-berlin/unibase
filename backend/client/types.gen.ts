@@ -719,6 +719,132 @@ export type GetFileResponses = {
 
 export type GetFileResponse = GetFileResponses[keyof GetFileResponses];
 
+export type GetProjectIndexByWorkspaceAndProjectData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * The name of the workspace
+         */
+        workspaceName: string;
+        projectName: string;
+    };
+    query?: never;
+    url: '/projects/code/{workspaceName}/{projectName}/dev';
+};
+
+export type GetProjectIndexByWorkspaceAndProjectErrors = {
+    /**
+     * Unauthorized - Invalid token
+     */
+    401: _Error;
+    /**
+     * Workspace, project, or file not found
+     */
+    404: unknown;
+    /**
+     * Server error - JWT_SECRET not configured
+     */
+    500: _Error;
+};
+
+export type GetProjectIndexByWorkspaceAndProjectError = GetProjectIndexByWorkspaceAndProjectErrors[keyof GetProjectIndexByWorkspaceAndProjectErrors];
+
+export type GetProjectIndexByWorkspaceAndProjectResponses = {
+    /**
+     * The JavaScript file content
+     */
+    200: string;
+};
+
+export type GetProjectIndexByWorkspaceAndProjectResponse = GetProjectIndexByWorkspaceAndProjectResponses[keyof GetProjectIndexByWorkspaceAndProjectResponses];
+
+export type GetProjectFileByWorkspaceAndProjectData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * The name of the workspace
+         */
+        workspaceName: string;
+        projectName: string;
+        'filename@dev.js': string;
+    };
+    query?: never;
+    url: '/projects/code/{workspaceName}/{projectName}/{filename@dev.js}';
+};
+
+export type GetProjectFileByWorkspaceAndProjectErrors = {
+    /**
+     * Unauthorized - Invalid token
+     */
+    401: _Error;
+    /**
+     * Workspace, project, or file not found
+     */
+    404: unknown;
+    /**
+     * Server error - JWT_SECRET not configured
+     */
+    500: _Error;
+};
+
+export type GetProjectFileByWorkspaceAndProjectError = GetProjectFileByWorkspaceAndProjectErrors[keyof GetProjectFileByWorkspaceAndProjectErrors];
+
+export type GetProjectFileByWorkspaceAndProjectResponses = {
+    /**
+     * The JavaScript file content
+     */
+    200: string;
+};
+
+export type GetProjectFileByWorkspaceAndProjectResponse = GetProjectFileByWorkspaceAndProjectResponses[keyof GetProjectFileByWorkspaceAndProjectResponses];
+
+export type GetDefaultProjectIndexByWorkspaceData = {
+    body?: never;
+    headers?: {
+        authorization?: string;
+    };
+    path: {
+        /**
+         * The name of the workspace
+         */
+        workspaceName: string;
+    };
+    query?: never;
+    url: '/projects/code/{workspaceName}/dev';
+};
+
+export type GetDefaultProjectIndexByWorkspaceErrors = {
+    /**
+     * Unauthorized - Invalid token
+     */
+    401: _Error;
+    /**
+     * Workspace, default project, or file not found
+     */
+    404: unknown;
+    /**
+     * Server error - JWT_SECRET not configured
+     */
+    500: _Error;
+};
+
+export type GetDefaultProjectIndexByWorkspaceError = GetDefaultProjectIndexByWorkspaceErrors[keyof GetDefaultProjectIndexByWorkspaceErrors];
+
+export type GetDefaultProjectIndexByWorkspaceResponses = {
+    /**
+     * The JavaScript file content
+     */
+    200: string;
+};
+
+export type GetDefaultProjectIndexByWorkspaceResponse = GetDefaultProjectIndexByWorkspaceResponses[keyof GetDefaultProjectIndexByWorkspaceResponses];
+
 export type CreateProjectWithConversationData = {
     body: {
         name: string;

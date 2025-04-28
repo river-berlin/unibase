@@ -7,11 +7,12 @@ import { JSExampleCode } from './exampleCode';
 export const THREEJS_INSTRUCTIONS = `Remember that you're working with ThreeJS. The code should:
 1. Use the THREE object which needs to be imported: import * as THREE from "three"
 2. Access the scene via the 'scene' variable you create
-3. Import helper functions from the basics.js module: import { cuboid, sphere, cylinder, cone, union, subtract, intersect, toStl } from "basics"
+3. Import helper functions from the basics.js module: import { cuboid, sphere, cylinder, cone, union, subtract, intersect } from "basics"
 4. Do not create any animation functions, or an init function, simply add stuff to the scene directly
-5. You can use CSG operations (union, subtract, intersect) imported from the basics module
+5. Use CSG operations, especially union() to combine multiple shapes into a single complex object
 6. Do not add any lighting
-7. Always include a generateStls function that returns an array containing the STL data: export function generateStls() { return [toStl(scene)]; }
+7. Export a single object which is a union of all the shapes, or just the shape if there isn't more than one
+8. Use the provided tools and functions to create interesting 3D models
 
 ## Image : IMPORTANT
 If an image is present, the first image is the rendered view of the current code.
@@ -19,56 +20,54 @@ If an image is present, the first image is the rendered view of the current code
 ## Basics.js Helper Functions
 The basics.js module provides helper functions that simplify 3D modeling with ThreeJS:
 
-- cuboid({ position, width, height, depth, color }) - Creates a box with explicit dimensions
-  - position: {x, y, z} coordinates
+- cuboid({ position, width, height, depth }) - Creates a box with explicit dimensions
+  - position: {x, y, z} coordinates (optional, default: {x: 0, y: 0, z: 0})
   - width, height, depth: dimensions along x, y, z axes
-  - color: hex color code (default: 0x00ff00)
 
-- sphere({ position, radius, widthSegments, heightSegments, color }) - Creates a sphere
-  - position: {x, y, z} coordinates
+- sphere({ position, radius, widthSegments, heightSegments }) - Creates a sphere
+  - position: {x, y, z} coordinates (optional, default: {x: 0, y: 0, z: 0})
   - radius: sphere radius
-  - widthSegments: horizontal segments (default: 32)
-  - heightSegments: vertical segments (default: 16)
-  - color: hex color code (default: 0x00ff00)
+  - widthSegments: horizontal segments (optional, default: 32)
+  - heightSegments: vertical segments (optional, default: 16)
 
-- cylinder({ position, radius, height, radialSegments, color }) - Creates a cylinder
-  - position: {x, y, z} coordinates
+- cylinder({ position, radius, height, radialSegments }) - Creates a cylinder
+  - position: {x, y, z} coordinates (optional, default: {x: 0, y: 0, z: 0})
   - radius: cylinder radius
   - height: cylinder height
-  - radialSegments: circumference segments (default: 32)
-  - color: hex color code (default: 0x00ff00)
+  - radialSegments: circumference segments (optional, default: 32)
 
-- cone({ position, radius, height, radialSegments, color }) - Creates a cone
-  - position: {x, y, z} coordinates
+- cone({ position, radius, height, radialSegments }) - Creates a cone
+  - position: {x, y, z} coordinates (optional, default: {x: 0, y: 0, z: 0})
   - radius: base radius
   - height: cone height
-  - radialSegments: circumference segments (default: 32)
-  - color: hex color code (default: 0x00ff00)
+  - radialSegments: circumference segments (optional, default: 32)
 
-- union({ meshA, meshB, color }) - Combines two meshes (CSG union)
+- union(meshA, meshB) - Combines two meshes (CSG union)
   - meshA, meshB: meshes to combine
-  - color: hex color code (default: 0x00ff00)
+  - Use this to build complex shapes from simpler ones
+  - Note: Takes direct parameters, not an object
 
-- subtract({ meshA, meshB, color }) - Subtracts meshB from meshA (CSG subtraction)
+- subtract(meshA, meshB) - Subtracts meshB from meshA (CSG subtraction)
   - meshA: mesh to subtract from
   - meshB: mesh to subtract
-  - color: hex color code (default: 0x00ff00)
+  - Note: Takes direct parameters, not an object
 
-- intersect({ meshA, meshB, color }) - Creates intersection of meshes (CSG intersection)
+- intersect(meshA, meshB) - Creates intersection of meshes (CSG intersection)
   - meshA, meshB: meshes to intersect
-  - color: hex color code (default: 0x00ff00)
-
-- toStl(scene, options) - Converts a scene to STL format
-  - scene: ThreeJS scene to convert
-  - options: { binary: boolean } (default: false)
-  - returns: STL data as string
+  - Note: Takes direct parameters, not an object
+  
+- polygon({ position, radius, sides, height }) - Creates a regular polygon
+  - position: {x, y, z} coordinates (optional, default: {x: 0, y: 0, z: 0})
+  - radius: radius of the polygon
+  - sides: number of sides (e.g., 3 for triangle, 6 for hexagon)
+  - height: thickness of the polygon (optional, default: 0.1)
 
 Example usage of helper functions:
 \`\`\`javascript
 import * as THREE from "three";
-import { cuboid, sphere, subtract, toStl } from "basics";
+import { cuboid, sphere, cylinder, union, subtract } from "basics";
 
-// Create a scene
+// Create a scene (for visualization only)
 const scene = new THREE.Scene();
 
 // Create basic shapes
@@ -76,32 +75,36 @@ const box = cuboid({
   position: {x: 0, y: 0, z: 0},
   width: 2,
   height: 2,
-  depth: 2,
-  color: 0xff0000
+  depth: 2
 });
 
 const ball = sphere({
   position: {x: 1, y: 1, z: 1},
-  radius: 1.2,
-  color: 0x00ff00
+  radius: 1.2
 });
 
-// Add shapes directly to scene
+// Add shapes to scene for visualization
 scene.add(box);
 scene.add(ball);
 
-// Or perform CSG operations
-const hollowBox = subtract({
-  meshA: box,
-  meshB: ball,
-  color: 0x0000ff
+// Create a more complex object using union
+const base = cuboid({
+  width: 3,
+  height: 0.5,
+  depth: 3
 });
-scene.add(hollowBox);
 
-// Export scene to STL
-export function generateStls() {
-  return [toStl(scene)];
-}
+const pillar = cylinder({
+  position: {x: 0, y: 1, z: 0},
+  radius: 0.5,
+  height: 2
+});
+
+// Combine shapes using union
+const monument = union(base, pillar);
+
+// Export the final object directly to STL
+export const object = monument;
 \`\`\`
 
 Here is some example code:

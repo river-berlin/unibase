@@ -22,7 +22,7 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const meshRef = useRef<THREE.Mesh | null>(null);
+  const meshRef = useRef<THREE.Mesh | THREE.Group | null>(null);
   const cameraStateRef = useRef<CameraState | null>(null);
   const { setImage } = useSceneImage();
   const { stlData } = useStlData();
@@ -87,7 +87,7 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
     controlsRef.current = controls;
 
     // Set up coordinate arrows
-    const updateArrows = setupCoordinateArrows(scene, camera);
+    const updateArrows = setupCoordinateArrows(scene, camera, renderer);
 
     // Animation loop
     let animationFrameId: number;
@@ -139,7 +139,6 @@ export function ThreeRenderer({ setScene }: ThreeRendererProps) {
     if (!sceneRef.current || !cameraRef.current || !controlsRef.current) return;
 
     if (stlData) {
-      console.log("stl data updated!")
       const { mesh, cameraState } = loadSTLObject(
         stlData,
         sceneRef.current,

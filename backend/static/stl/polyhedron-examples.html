@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polyhedron Examples</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #scene-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    #code-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      max-width: 50%;
+      z-index: 100;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/exporters/STLExporter": "https://unpkg.com/three@0.160.0/examples/jsm/exporters/STLExporter.js",
+        "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+        "three-csg-ts": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/index.js",
+        "three-csg-ts/src/Polygon": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Polygon.js",
+        "three-csg-ts/src/Vertex": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vertex.js",
+        "three-csg-ts/src/Vector": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vector.js",
+        "basics": "./basics.js",
+        "basics.js": "./basics.js",
+        "./shapes/cuboid.js": "./shapes/cuboid.js",
+        "./shapes/sphere.js": "./shapes/sphere.js",
+        "./shapes/cylinder.js": "./shapes/cylinder.js",
+        "./shapes/cone.js": "./shapes/cone.js",
+        "./shapes/polygon.js": "./shapes/polygon.js",
+        "./shapes/operations.js": "./shapes/operations.js",
+        "./shapes/export.js": "./shapes/export.js",
+        "./shapes/object.js": "./shapes/object.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="scene-container"></div>
+  
+  <div id="code-container">
+    <p>Mouse controls: Left-click and drag to rotate, right-click and drag to pan, scroll to zoom.</p>
+    <p><strong>Polyhedron Examples</strong></p>
+    <p>Various 3D shapes created using the polyhedron() function</p>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+    import { STLExporter } from 'three/examples/jsm/exporters/STLExporter';
+    import * as basics from 'basics';
+
+    // Set up the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x333333);
+    
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 50;
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.getElementById('scene-container').appendChild(renderer.domElement);
+    
+    // Add orbit controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    backLight.position.set(-1, -1, -1);
+    scene.add(backLight);
+    
+    const axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // Function to create text labels
+    function createTextLabel(text, position) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 64;
+      
+      context.fillStyle = 'rgba(0, 0, 0, 0)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      context.fillStyle = '#ffffff';
+      context.font = 'Bold 20px Arial';
+      context.textAlign = 'center';
+      context.fillText(text, 128, 32);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      
+      const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(spriteMaterial);
+      sprite.scale.set(10, 5, 1);
+      sprite.position.copy(position);
+      return sprite;
+    }
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    // Function to render our 3D objects
+    function renderPolyhedrons() {
+      // Get the polyhedron function from basics
+      const { polyhedron } = basics;
+      
+      // EXAMPLE 1: Tetrahedron
+      // Define the points for a tetrahedron
+      const tetraPoints = [
+        0, 10, 0,    // Top point
+        -10, -5, -10, // Bottom left back
+        10, -5, -10,  // Bottom right back
+        0, -5, 10    // Bottom center front
+      ];
+      
+      // Define the faces (triangles connecting the points)
+      const tetraFaces = [
+        [0, 1, 2], // Top, back-left, back-right 
+        [0, 2, 3], // Top, back-right, front
+        [0, 3, 1], // Top, front, back-left
+        [1, 3, 2]  // Bottom face (note the different winding)
+      ];
+      
+      // Create the tetrahedron
+      const tetra = polyhedron({
+        points: tetraPoints,
+        faces: tetraFaces,
+        position: { x: -30, y: 10, z: 0 },
+        color: 0x22cc88 // Green color
+      });
+      
+      scene.add(tetra.render());
+      scene.add(createTextLabel('TETRAHEDRON', { x: -30, y: 25, z: 0 }));
+      
+      // EXAMPLE 2: Cube (Hexahedron)
+      // Define the points for a cube
+      const cubePoints = [
+        // Top face vertices
+        -5, 5, -5,  // Top back left
+        5, 5, -5,   // Top back right
+        5, 5, 5,    // Top front right
+        -5, 5, 5,   // Top front left
+        
+        // Bottom face vertices
+        -5, -5, -5, // Bottom back left
+        5, -5, -5,  // Bottom back right
+        5, -5, 5,   // Bottom front right
+        -5, -5, 5   // Bottom front left
+      ];
+      
+      // Define the faces (each face is a quad, but will be triangulated)
+      const cubeFaces = [
+        [0, 1, 2, 3],   // Top face
+        [4, 7, 6, 5],   // Bottom face (note the winding direction)
+        [0, 3, 7, 4],   // Left face
+        [1, 5, 6, 2],   // Right face
+        [0, 4, 5, 1],   // Back face
+        [3, 2, 6, 7]    // Front face
+      ];
+      
+      // Create the cube
+      const cube = polyhedron({
+        points: cubePoints,
+        faces: cubeFaces,
+        position: { x: 0, y: 10, z: 0 },
+        color: 0x4488ff // Blue color
+      });
+      
+      scene.add(cube.render());
+      scene.add(createTextLabel('CUBE', { x: 0, y: 25, z: 0 }));
+      
+      // EXAMPLE 3: Octahedron
+      // Define the points for an octahedron
+      const octaPoints = [
+        0, 10, 0,    // Top point
+        10, 0, 0,    // Right point
+        0, 0, 10,    // Front point
+        -10, 0, 0,   // Left point
+        0, 0, -10,   // Back point
+        0, -10, 0    // Bottom point
+      ];
+      
+      // Define the faces (triangles)
+      const octaFaces = [
+        [0, 1, 2],   // Top-right-front
+        [0, 2, 3],   // Top-front-left
+        [0, 3, 4],   // Top-left-back
+        [0, 4, 1],   // Top-back-right
+        
+        [5, 2, 1],   // Bottom-front-right
+        [5, 3, 2],   // Bottom-left-front
+        [5, 4, 3],   // Bottom-back-left
+        [5, 1, 4]    // Bottom-right-back
+      ];
+      
+      // Create the octahedron
+      const octa = polyhedron({
+        points: octaPoints,
+        faces: octaFaces,
+        position: { x: 30, y: 10, z: 0 },
+        color: 0xff8833 // Orange color
+      });
+      
+      scene.add(octa.render());
+      scene.add(createTextLabel('OCTAHEDRON', { x: 30, y: 25, z: 0 }));
+      
+      // EXAMPLE 4: Custom Polyhedron - Truncated Pyramid
+      // Define the points for a truncated pyramid
+      const pyramidPoints = [
+        // Top face (smaller square)
+        -3, 7, -3,  // Top back left
+        3, 7, -3,   // Top back right
+        3, 7, 3,    // Top front right
+        -3, 7, 3,   // Top front left
+        
+        // Bottom face (larger square)
+        -7, 0, -7,  // Bottom back left
+        7, 0, -7,   // Bottom back right
+        7, 0, 7,    // Bottom front right
+        -7, 0, -7   // Bottom front left (duplicate of idx 4, will be de-duped)
+      ];
+      
+      // Define the faces
+      const pyramidFaces = [
+        [0, 1, 2, 3],   // Top face
+        [4, 5, 6, 7],   // Bottom face
+        [0, 4, 5, 1],   // Side face 1
+        [1, 5, 6, 2],   // Side face 2
+        [2, 6, 7, 3],   // Side face 3
+        [3, 7, 4, 0]    // Side face 4
+      ];
+      
+      // Create the truncated pyramid
+      const pyramid = polyhedron({
+        points: pyramidPoints,
+        faces: pyramidFaces,
+        position: { x: -30, y: -15, z: 0 },
+        color: 0xcc44aa // Pink/purple color
+      });
+      
+      scene.add(pyramid.render());
+      scene.add(createTextLabel('TRUNCATED PYRAMID', { x: -30, y: -30, z: 0 }));
+      
+      // EXAMPLE 5: Dodecahedron (simplified version with 12 pentagonal faces)
+      // For a true dodecahedron, we'd need to calculate the exact coordinates
+      // This is a simplified version using approximate coordinates
+      
+      // Golden ratio for dodecahedron calculations
+      const phi = (1 + Math.sqrt(5)) / 2;
+      
+      // Define the points for an approximated dodecahedron
+      const dodecaPoints = [
+        // Vertices based on scaled coordinates using the golden ratio
+        1, 1, 1,            // 0
+        1, 1, -1,           // 1
+        1, -1, 1,           // 2
+        1, -1, -1,          // 3
+        -1, 1, 1,           // 4
+        -1, 1, -1,          // 5
+        -1, -1, 1,          // 6
+        -1, -1, -1,         // 7
+        
+        0, 1/phi, phi,      // 8
+        0, 1/phi, -phi,     // 9
+        0, -1/phi, phi,     // 10
+        0, -1/phi, -phi,    // 11
+        
+        1/phi, phi, 0,      // 12
+        1/phi, -phi, 0,     // 13
+        -1/phi, phi, 0,     // 14
+        -1/phi, -phi, 0,    // 15
+        
+        phi, 0, 1/phi,      // 16
+        phi, 0, -1/phi,     // 17
+        -phi, 0, 1/phi,     // 18
+        -phi, 0, -1/phi     // 19
+      ];
+      
+      // Scale factor for the dodecahedron
+      const scale = 5;
+      const scaledPoints = dodecaPoints.map(coord => coord * scale);
+      
+      // Define the 12 pentagonal faces (simplified - not a perfect dodecahedron)
+      // These face definitions are simplified and approximate
+      const dodecaFaces = [
+        [0, 8, 10, 2, 16],      // Face 1
+        [0, 16, 17, 1, 12],     // Face 2
+        [0, 12, 14, 4, 8],      // Face 3
+        [1, 17, 3, 11, 9],      // Face 4
+        [1, 9, 5, 14, 12],      // Face 5
+        [2, 10, 6, 15, 13],     // Face 6
+        [2, 13, 3, 17, 16],     // Face 7
+        [3, 13, 15, 7, 11],     // Face 8
+        [4, 14, 5, 19, 18],     // Face 9
+        [4, 18, 6, 10, 8],      // Face 10
+        [5, 9, 11, 7, 19],      // Face 11
+        [6, 18, 19, 7, 15]      // Face 12
+      ];
+      
+      // Create the dodecahedron
+      const dodeca = polyhedron({
+        points: scaledPoints,
+        faces: dodecaFaces,
+        position: { x: 0, y: -15, z: 0 },
+        color: 0xffcc44 // Yellow/gold color
+      });
+      
+      scene.add(dodeca.render());
+      scene.add(createTextLabel('DODECAHEDRON', { x: 0, y: -30, z: 0 }));
+      
+      // EXAMPLE 6: Custom "Crystal" Shape
+      // Let's create an interesting crystal-like shape
+      const crystalPoints = [
+        0, 15, 0,     // Top point
+        
+        // Middle ring of points (octagonal)
+        8, 5, 0,      // Right
+        5.66, 5, 5.66, // Right-front
+        0, 5, 8,      // Front
+        -5.66, 5, 5.66, // Left-front
+        -8, 5, 0,     // Left
+        -5.66, 5, -5.66, // Left-back
+        0, 5, -8,     // Back
+        5.66, 5, -5.66, // Right-back
+        
+        // Bottom points
+        4, 0, 0,      // Bottom-right
+        0, 0, 4,      // Bottom-front
+        -4, 0, 0,     // Bottom-left
+        0, 0, -4      // Bottom-back
+      ];
+      
+      // Define the faces for the crystal
+      const crystalFaces = [
+        // Top pyramid faces
+        [0, 1, 2],
+        [0, 2, 3],
+        [0, 3, 4],
+        [0, 4, 5],
+        [0, 5, 6],
+        [0, 6, 7],
+        [0, 7, 8],
+        [0, 8, 1],
+        
+        // Middle to bottom faces
+        [1, 9, 10, 2],
+        [2, 10, 11, 3],
+        [3, 11, 4],
+        [4, 11, 12, 5],
+        [5, 12, 6],
+        [6, 12, 9, 7],
+        [7, 9, 8],
+        [8, 9, 1],
+        
+        // Bottom face
+        [9, 10, 11, 12]
+      ];
+      
+      // Create the crystal
+      const crystal = polyhedron({
+        points: crystalPoints,
+        faces: crystalFaces,
+        position: { x: 30, y: -15, z: 0 },
+        color: 0x44ddff // Cyan/light blue color
+      });
+      
+      scene.add(crystal.render());
+      scene.add(createTextLabel('CRYSTAL', { x: 30, y: -30, z: 0 }));
+      
+      console.log('All polyhedron examples created successfully!');
+    }
+    
+    // Run the rendering function
+    renderPolyhedrons();
+  </script>
+</body>
+</html>

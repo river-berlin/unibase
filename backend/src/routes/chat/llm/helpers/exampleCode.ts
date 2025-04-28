@@ -1,244 +1,159 @@
 export const JSExampleCode = `
 
-Example 1: Creating glasses
+Example 1: Creating a hexagon table
 \`\`\`javascript
-import * as THREE from "three";
-import { cuboid, cylinder, subtract, toStl } from "basics";
+import { polygon, cylinder, union } from "basics";
 
-// Create a pair of glasses
-function createGlasses() {
-  // Create a scene
-  const scene = new THREE.Scene();
+const tableTop = polygon({
+  radius: 1.5,
+  sides: 6,
+  height: 0.1,
+  position: {x: 0, y: 0.75, z: 0}
+});
+
+const createLeg = (angle) => {
+  const distance = 1.2;
+  const x = distance * Math.cos(angle);
+  const z = distance * Math.sin(angle);
   
-  // Material for the frames
-  const frameMaterial = new THREE.MeshPhongMaterial({
-    color: 0x3a3a3a,
-    shininess: 100,
-    specular: 0x111111
+  return cylinder({
+    radius: 0.1,
+    height: 1.5,
+    position: {x, y: 0, z}
   });
-  
-  // Material for the lenses
-  const lensMaterial = new THREE.MeshPhongMaterial({
-    color: 0x8888ff,
-    transparent: true,
-    opacity: 0.4,
-    shininess: 100
-  });
-  
-  // Dimensions
-  const rimRadius = 0.5;
-  const rimThickness = 0.08;
-  const lensRadius = rimRadius - rimThickness;
-  
-  // Left rim
-  const leftRim = new THREE.Mesh(
-    new THREE.TorusGeometry(rimRadius, rimThickness, 16, 32),
-    frameMaterial
-  );
-  leftRim.position.set(-0.7, 0, 0);
-  scene.add(leftRim);
-  
-  // Right rim
-  const rightRim = new THREE.Mesh(
-    new THREE.TorusGeometry(rimRadius, rimThickness, 16, 32),
-    frameMaterial
-  );
-  rightRim.position.set(0.7, 0, 0);
-  scene.add(rightRim);
-  
-  // Bridge (connecting the rims)
-  const bridge = new THREE.Mesh(
-    new THREE.CylinderGeometry(rimThickness/2, rimThickness/2, 0.4, 8),
-    frameMaterial
-  );
-  bridge.rotation.z = Math.PI / 2;
-  scene.add(bridge);
-  
-  // Left lens
-  const leftLens = new THREE.Mesh(
-    new THREE.CylinderGeometry(lensRadius, lensRadius, 0.05, 32),
-    lensMaterial
-  );
-  leftLens.position.set(-0.7, 0, 0);
-  leftLens.rotation.x = Math.PI / 2;
-  scene.add(leftLens);
-  
-  // Right lens
-  const rightLens = new THREE.Mesh(
-    new THREE.CylinderGeometry(lensRadius, lensRadius, 0.05, 32),
-    lensMaterial
-  );
-  rightLens.position.set(0.7, 0, 0);
-  rightLens.rotation.x = Math.PI / 2;
-  scene.add(rightLens);
-  
-  return scene;
+};
+
+let legs = createLeg(0);
+for (let i = 1; i < 6; i++) {
+  const angle = (i * Math.PI * 2) / 6;
+  const leg = createLeg(angle);
+  legs = union(legs, leg);
 }
 
-// Create and return the glasses
-const scene = createGlasses();
+const table = union(tableTop, legs);
 
-// Export scene to STL
-export function generateStls() {
-  return [toStl(scene)];
-}
+export const object = table;
+\`\`\`
+
+Example 2: Creating glasses
+\`\`\`javascript
+import { cylinder, union } from "basics";
+
+const rimRadius = 0.5;
+const rimThickness = 0.08;
+
+const leftRim = {
+  geometry: new TorusGeometry(rimRadius, rimThickness, 16, 32),
+  position: {x: -0.7, y: 0, z: 0}
+};
+
+const rightRim = {
+  geometry: new TorusGeometry(rimRadius, rimThickness, 16, 32),
+  position: {x: 0.7, y: 0, z: 0}
+};
+
+const bridge = cylinder({
+  radius: rimThickness/2,
+  height: 0.4,
+  position: {x: 0, y: 0, z: 0},
+  rotation: {x: 0, y: 0, z: Math.PI / 2}
+});
+
+const leftPart = union(leftRim, bridge);
+const glasses = union(leftPart, rightRim);
+
+export const object = glasses;
 \`\`\`
 
 Example 2: Creating a snowman
 \`\`\`javascript
-import * as THREE from "three";
-import { sphere, cylinder, cone, toStl } from "basics";
+import { sphere, cone, union } from "basics";
 
-// Create a snowman
-function createSnowman() {
-  // Create a scene
-  const scene = new THREE.Scene();
-  
-  // Snow material (white and slightly shiny)
-  const snowMaterial = new THREE.MeshPhongMaterial({
-    color: 0xffffff,
-    shininess: 30
-  });
-  
-  // Coal material for eyes and buttons
-  const coalMaterial = new THREE.MeshPhongMaterial({
-    color: 0x111111,
-    shininess: 10
-  });
-  
-  // Carrot material for nose
-  const carrotMaterial = new THREE.MeshPhongMaterial({
-    color: 0xff7800,
-    shininess: 30
-  });
-  
-  // Bottom sphere (largest)
-  const bottomSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.75, 32, 32),
-    snowMaterial
-  );
-  bottomSphere.position.y = -0.75;
-  scene.add(bottomSphere);
-  
-  // Middle sphere
-  const middleSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 32, 32),
-    snowMaterial
-  );
-  middleSphere.position.y = 0.3;
-  scene.add(middleSphere);
-  
-  // Head sphere (smallest)
-  const headSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.35, 32, 32),
-    snowMaterial
-  );
-  headSphere.position.y = 1.0;
-  scene.add(headSphere);
-  
-  // Left eye
-  const leftEye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.05, 16, 16),
-    coalMaterial
-  );
-  leftEye.position.set(-0.1, 1.05, 0.3);
-  scene.add(leftEye);
-  
-  // Right eye
-  const rightEye = new THREE.Mesh(
-    new THREE.SphereGeometry(0.05, 16, 16),
-    coalMaterial
-  );
-  rightEye.position.set(0.1, 1.05, 0.3);
-  scene.add(rightEye);
-  
-  // Carrot nose
-  const nose = new THREE.Mesh(
-    new THREE.ConeGeometry(0.08, 0.3, 16),
-    carrotMaterial
-  );
-  nose.position.set(0, 0.95, 0.35);
-  nose.rotation.x = Math.PI / 2;
-  scene.add(nose);
-  
-  // Buttons
-  for (let i = 0; i < 3; i++) {
-    const button = new THREE.Mesh(
-      new THREE.SphereGeometry(0.05, 16, 16),
-      coalMaterial
-    );
-    button.position.set(0, 0.3 - i * 0.2, 0.5);
-    scene.add(button);
-  }
-  
-  return scene;
-}
+const bottomSphere = sphere({
+  radius: 0.75,
+  position: {x: 0, y: -0.75, z: 0}
+});
 
-// Create and return the snowman
-const scene = createSnowman();
+const middleSphere = sphere({
+  radius: 0.5,
+  position: {x: 0, y: 0.3, z: 0}
+});
 
-// Export scene to STL
-export function generateStls() {
-  return [toStl(scene)];
-}
+const headSphere = sphere({
+  radius: 0.35,
+  position: {x: 0, y: 1.0, z: 0}
+});
+
+const nose = cone({
+  radius: 0.08,
+  height: 0.3,
+  position: {x: 0, y: 0.95, z: 0.35},
+  rotation: {x: Math.PI / 2, y: 0, z: 0}
+});
+
+const leftEye = sphere({
+  radius: 0.05,
+  position: {x: -0.1, y: 1.05, z: 0.3}
+});
+
+const rightEye = sphere({
+  radius: 0.05,
+  position: {x: 0.1, y: 1.05, z: 0.3}
+});
+
+const bodyBase = union(bottomSphere, middleSphere);
+const bodyWithHead = union(bodyBase, headSphere);
+const bodyWithFace = union(bodyWithHead, nose);
+const faceWithLeftEye = union(bodyWithFace, leftEye);
+const snowman = union(faceWithLeftEye, rightEye);
+
+export const object = snowman;
 \`\`\`
 
 Example 3: Creating a simple table
 \`\`\`javascript
-import * as THREE from "three";
-import { cuboid, toStl } from "basics";
+import { cuboid, union } from "basics";
 
-// Create a simple table
-function createTable() {
-  // Create a scene
-  const scene = new THREE.Scene();
-  
-  // Wood material for the table
-  const woodMaterial = new THREE.MeshPhongMaterial({
-    color: 0x8B4513,
-    shininess: 30
-  });
-  
-  // Table top
-  const tableTop = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 0.1, 1),
-    woodMaterial
-  );
-  tableTop.position.y = 0.75;
-  scene.add(tableTop);
-  
-  // Table legs
-  const legGeometry = new THREE.BoxGeometry(0.1, 1.5, 0.1);
-  
-  // Front left leg
-  const frontLeftLeg = new THREE.Mesh(legGeometry, woodMaterial);
-  frontLeftLeg.position.set(-0.9, 0, 0.4);
-  scene.add(frontLeftLeg);
-  
-  // Front right leg
-  const frontRightLeg = new THREE.Mesh(legGeometry, woodMaterial);
-  frontRightLeg.position.set(0.9, 0, 0.4);
-  scene.add(frontRightLeg);
-  
-  // Back left leg
-  const backLeftLeg = new THREE.Mesh(legGeometry, woodMaterial);
-  backLeftLeg.position.set(-0.9, 0, -0.4);
-  scene.add(backLeftLeg);
-  
-  // Back right leg
-  const backRightLeg = new THREE.Mesh(legGeometry, woodMaterial);
-  backRightLeg.position.set(0.9, 0, -0.4);
-  scene.add(backRightLeg);
-  
-  return scene;
-}
+const tableTop = cuboid({
+  width: 2,
+  height: 0.1,
+  depth: 1,
+  position: {x: 0, y: 0.75, z: 0}
+});
 
-// Create and return the table
-const scene = createTable();
+const frontLeftLeg = cuboid({
+  width: 0.1,
+  height: 1.5,
+  depth: 0.1,
+  position: {x: -0.9, y: 0, z: 0.4}
+});
 
-// Export scene to STL
-export function generateStls() {
-  return [toStl(scene)];
-}
+const frontRightLeg = cuboid({
+  width: 0.1,
+  height: 1.5,
+  depth: 0.1,
+  position: {x: 0.9, y: 0, z: 0.4}
+});
+
+const backLeftLeg = cuboid({
+  width: 0.1,
+  height: 1.5,
+  depth: 0.1,
+  position: {x: -0.9, y: 0, z: -0.4}
+});
+
+const backRightLeg = cuboid({
+  width: 0.1,
+  height: 1.5,
+  depth: 0.1,
+  position: {x: 0.9, y: 0, z: -0.4}
+});
+
+const frontLegs = union(frontLeftLeg, frontRightLeg);
+const backLegs = union(backLeftLeg, backRightLeg);
+const allLegs = union(frontLegs, backLegs);
+const table = union(tableTop, allLegs);
+
+export const object = table;
 \`\`\`
 `;

@@ -4,20 +4,24 @@ import { useLocalSearchParams } from 'expo-router';
 import { ThreeRenderer } from './components/render/ThreeRenderer';
 import { Chat } from './components/chat/main';
 import { getProjectWithFolderInfo } from '~/client';
-import { useProject, useCode, useChatMessages } from "~/app/atoms"
+import { useProject, useCode, useChatMessages, useStlData } from "~/app/atoms"
 
 export default function ProjectPage() {
   const { id } = useLocalSearchParams();
   const { setProject } = useProject();
   const { setCode } = useCode();
   const { setAllMessages } = useChatMessages();
+  const { setStl } = useStlData();
 
   useEffect(() => {
     // Skip if id is not a string or is empty
     if (!id || typeof id !== 'string') return;
 
+    console.log('working on  project with id:', id);
+
     setCode([]);
     setAllMessages([]);
+    setStl([]);
 
     // Fetch project data
     const fetchProject = async () => {

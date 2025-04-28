@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Slab Intersection Test</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #debug-output {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      font-family: monospace;
+      max-height: 80vh;
+      overflow-y: auto;
+      max-width: 600px;
+      white-space: pre-wrap;
+      border: 1px solid #555;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="debug-output"></div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/exporters/STLExporter": "https://unpkg.com/three@0.160.0/examples/jsm/exporters/STLExporter.js",
+        "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+        "three-csg-ts": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/index.js",
+        "three-csg-ts/src/Polygon": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Polygon.js",
+        "three-csg-ts/src/Vertex": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vertex.js",
+        "three-csg-ts/src/Vector": "https://unpkg.com/three-csg-ts@3.2.0/lib/esm/Vector.js",
+        "basics": "./basics.js",
+        "basics.js": "./basics.js",
+        "./shapes/cuboid.js": "./shapes/cuboid.js",
+        "./shapes/sphere.js": "./shapes/sphere.js",
+        "./shapes/cylinder.js": "./shapes/cylinder.js",
+        "./shapes/cone.js": "./shapes/cone.js",
+        "./shapes/polygon.js": "./shapes/polygon.js",
+        "./shapes/operations.js": "./shapes/operations.js",
+        "./shapes/export.js": "./shapes/export.js",
+        "./shapes/object.js": "./shapes/object.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+    import * as basics from './basics.js';
+    import { Polyhedron } from './shapes/polyhedron.js';
+    
+    // Debug logging function
+    const debugLog = (message) => {
+      const debugOutput = document.getElementById('debug-output');
+      debugOutput.innerHTML += message + '\n';
+      console.log(message);
+    };
+    
+    // Set up the scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+    
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, -20, 30);
+    camera.lookAt(0, -20, 0);
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    
+    // Add orbit controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    
+    // Add lighting for better visibility on white background
+    const ambientLight = new THREE.AmbientLight(0x606060);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    backLight.position.set(-1, -1, -1);
+    scene.add(backLight);
+    
+    // Add axes helper with stronger colors
+    const axesHelper = new THREE.AxesHelper(8);
+    scene.add(axesHelper);
+    
+    // Function to create a text label
+    function createTextLabel(text, position) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 256;
+      canvas.height = 128;
+      
+      // Clear canvas with transparent background
+      context.fillStyle = 'rgba(0, 0, 0, 0)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw text with black color for white background
+      context.font = 'bold 24px Arial';
+      context.fillStyle = 'black';
+      context.textAlign = 'center';
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+      
+      // Add a slight shadow for better contrast
+      context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      context.shadowBlur = 4;
+      context.shadowOffsetX = 2;
+      context.shadowOffsetY = 2;
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      
+      const material = new THREE.SpriteMaterial({ map: texture });
+      const sprite = new THREE.Sprite(material);
+      
+      sprite.position.set(position.x, position.y, position.z);
+      sprite.scale.set(10, 5, 1);
+      
+      return sprite;
+    }
+    
+    // Extract the basic functions from basics
+    const {
+      polyhedron,
+      findIntersectionWithCentering, findIntersectionWithBSP
+    } = basics;
+    
+    // Calculate the intersection line between two slabs
+    function calculateIntersectionLine(points1, points2) {
+      // For two axis-aligned slabs, we need to calculate where they intersect
+      // This is a simplified calculation for demonstration purposes
+      try {
+        // Get the center of slab 1
+        const center1 = [
+          (points1[0][0] + points1[1][0]) / 2,
+          (points1[0][1] + points1[4][1]) / 2,
+          (points1[0][2] + points1[2][2]) / 2
+        ];
+        
+        // Get the center of slab 2
+        const center2 = [
+          (points2[0][0] + points2[1][0]) / 2,
+          (points2[0][1] + points2[4][1]) / 2,
+          (points2[0][2] + points2[2][2]) / 2
+        ];
+        
+        // Get the direction of intersection (perpendicular to both normal vectors)
+        // For our case, slab 1 is horizontal (normal = [0,1,0]) and slab 2 is angled
+        
+        // Calculate normal of slab 1 (vertical)
+        const normal1 = [0, 1, 0];
+        
+        // Calculate normal of slab 2 (angled)
+        // Using vector cross product of two edges
+        const edge1 = [
+          points2[1][0] - points2[0][0],
+          points2[1][1] - points2[0][1],
+          points2[1][2] - points2[0][2]
+        ];
+        
+        const edge2 = [
+          points2[4][0] - points2[0][0],
+          points2[4][1] - points2[0][1],
+          points2[4][2] - points2[0][2]
+        ];
+        
+        // Calculate cross product
+        const normal2 = [
+          edge1[1] * edge2[2] - edge1[2] * edge2[1],
+          edge1[2] * edge2[0] - edge1[0] * edge2[2],
+          edge1[0] * edge2[1] - edge1[1] * edge2[0]
+        ];
+        
+        // Normalize
+        const length = Math.sqrt(normal2[0] * normal2[0] + normal2[1] * normal2[1] + normal2[2] * normal2[2]);
+        normal2[0] /= length;
+        normal2[1] /= length;
+        normal2[2] /= length;
+        
+        // Calculate direction (cross product of normals)
+        const direction = [
+          normal1[1] * normal2[2] - normal1[2] * normal2[1],
+          normal1[2] * normal2[0] - normal1[0] * normal2[2],
+          normal1[0] * normal2[1] - normal1[1] * normal2[0]
+        ];
+        
+        // Normalize direction
+        const dirLength = Math.sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+        direction[0] /= dirLength;
+        direction[1] /= dirLength;
+        direction[2] /= dirLength;
+        
+        // Length of the intersecting line should be approximately the width of the slabs
+        const lineLength = 15; // Approximate width/length of our slabs
+        
+        // Calculate start and end points of line
+        const start = [
+          center1[0] - direction[0] * lineLength/2,
+          center1[1] - direction[1] * lineLength/2,
+          center1[2] - direction[2] * lineLength/2
+        ];
+        
+        const end = [
+          center1[0] + direction[0] * lineLength/2,
+          center1[1] + direction[1] * lineLength/2,
+          center1[2] + direction[2] * lineLength/2
+        ];
+        
+        return { start, end };
+      } catch (error) {
+        console.error('Error calculating intersection line:', error);
+        return null;
+      }
+    }
+
+    // Function to render our 3D objects
+    async function renderObjects() {
+      debugLog("Creating slab intersection test...");
+      
+      // Create two slabs using direct polyhedron geometry
+      // First slab - horizontal slab
+      const slab1Points = [
+        // Bottom face vertices
+        [15, -25.5, -5], // 0: bottom-left-back
+        [25, -25.5, -5], // 1: bottom-right-back
+        [25, -25.5, 5],  // 2: bottom-right-front
+        [15, -25.5, 5],  // 3: bottom-left-front
+        
+        // Top face vertices
+        [15, -24.5, -5], // 4: top-left-back
+        [25, -24.5, -5], // 5: top-right-back
+        [25, -24.5, 5],  // 6: top-right-front
+        [15, -24.5, 5]   // 7: top-left-front
+      ];
+      
+      // Define faces for slab 1 (counter-clockwise winding)
+      const slab1Faces = [
+        [0, 1, 2, 3], // Bottom face
+        [7, 6, 5, 4], // Top face
+        [0, 4, 5, 1], // Back face
+        [1, 5, 6, 2], // Right face
+        [2, 6, 7, 3], // Front face
+        [3, 7, 4, 0]  // Left face
+      ];
+      
+      debugLog("Slab 1 (Horizontal):");
+      debugLog("Points: " + JSON.stringify(slab1Points, null, 2));
+      debugLog("Faces: " + JSON.stringify(slab1Faces, null, 2));
+      
+      // Second slab - angled 30 degrees
+      const angle = 30; // 30 degrees
+      const radians = angle * (Math.PI / 180);
+      const cosAngle = Math.cos(radians);
+      const sinAngle = Math.sin(radians);
+      
+      // Function to rotate a point around the z-axis
+      const rotatePoint = (point, centerX = 20, centerY = -25) => {
+        const x = point[0] - centerX;
+        const y = point[1] - centerY;
+        
+        // Apply rotation
+        const rotatedX = x * cosAngle - y * sinAngle;
+        const rotatedY = x * sinAngle + y * cosAngle;
+        
+        // Return the rotated point (translated back)
+        return [rotatedX + centerX, rotatedY + centerY, point[2]];
+      };
+      
+      // Create rotated points for slab 2
+      const slab2Points = [
+        // Use the same base coordinates as slab1 but apply rotation
+        rotatePoint([15, -25.5, -5]), // 0: bottom-left-back
+        rotatePoint([25, -25.5, -5]), // 1: bottom-right-back
+        rotatePoint([25, -25.5, 5]),  // 2: bottom-right-front
+        rotatePoint([15, -25.5, 5]),  // 3: bottom-left-front
+        
+        rotatePoint([15, -24.5, -5]), // 4: top-left-back
+        rotatePoint([25, -24.5, -5]), // 5: top-right-back
+        rotatePoint([25, -24.5, 5]),  // 6: top-right-front
+        rotatePoint([15, -24.5, 5])   // 7: top-left-front
+      ];
+      
+      debugLog("Slab 2 (Angled 30 degrees):");
+      debugLog("Points after rotation: " + JSON.stringify(slab2Points, null, 2));
+      
+      // Faces are the same as slab1
+      const slab2Faces = [...slab1Faces];
+      
+      // Mark intersection points between slabs
+      // Calculate where the two slabs intersect geometrically
+      const intersectionLine = calculateIntersectionLine(slab1Points, slab2Points);
+      if (intersectionLine) {
+        debugLog("\nGeometric intersection line between slabs:");
+        debugLog(`  Start: [${intersectionLine.start.join(', ')}]`);
+        debugLog(`  End: [${intersectionLine.end.join(', ')}]`);
+        
+        // Visualize the intersection line
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3 });
+        const lineGeometry = new THREE.BufferGeometry();
+        const lineVertices = new Float32Array([
+          intersectionLine.start[0], intersectionLine.start[1], intersectionLine.start[2],
+          intersectionLine.end[0], intersectionLine.end[1], intersectionLine.end[2]
+        ]);
+        lineGeometry.setAttribute('position', new THREE.BufferAttribute(lineVertices, 3));
+        const line = new THREE.Line(lineGeometry, lineMaterial);
+        scene.add(line);
+      } else {
+        debugLog("\nCould not calculate geometric intersection line between slabs");
+      }
+
+      // Create the polyhedron objects
+      const slab1 = polyhedron({
+        points: slab1Points,
+        faces: slab1Faces,
+        position: { x: 0, y: 0, z: 0 }, // Already positioned in the points
+        color: 0x990000 // Darker Red for better contrast
+      });
+      
+      const slab2 = polyhedron({
+        points: slab2Points,
+        faces: slab2Faces,
+        position: { x: 0, y: 0, z: 0 }, // Already positioned in the points
+        color: 0x007700 // Darker Green for better contrast
+      });
+      
+      // Add slabs to the scene
+      scene.add(slab1.render());
+      scene.add(slab2.render());
+      
+      // Add labels for the slabs
+      const slab1Label = createTextLabel('HORIZONTAL SLAB', { x: 20, y: -20, z: 0 });
+      const slab2Label = createTextLabel('30° ANGLED SLAB', { x: 20, y: -30, z: 0 });
+      
+      scene.add(slab1Label);
+      scene.add(slab2Label);
+      
+      // Create slab geometries for intersection calculation
+      const slab1Geometry = { points: slab1Points, faces: slab1Faces };
+      const slab2Geometry = { points: slab2Points, faces: slab2Faces };
+      
+      // Find the intersection
+      debugLog("\nFinding intersection between horizontal and angled slabs...");
+      
+      // Point-by-point analysis of isPointInsideSolid
+      debugLog("\nPoint-by-point analysis:");
+      
+      // Function to check if a point is inside a solid
+      // This is a simplified version of the actual isPointInsideSolid function for demonstration
+      function isPointInsideSolid(point, points, faces) {
+        debugLog(`  Checking if point [${point}] is inside solid`);
+        
+        // Logic would check if this point is inside the other solid
+        // by casting rays and counting intersections
+        
+        // For our test, let's simply check if the point is within the bounding box
+        // of the other solid with a small margin
+        const margin = 0.1;
+        
+        // Find bounding box of the other solid
+        let minX = Infinity, minY = Infinity, minZ = Infinity;
+        let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+        
+        for (const p of points) {
+          minX = Math.min(minX, p[0]);
+          minY = Math.min(minY, p[1]);
+          minZ = Math.min(minZ, p[2]);
+          maxX = Math.max(maxX, p[0]);
+          maxY = Math.max(maxY, p[1]);
+          maxZ = Math.max(maxZ, p[2]);
+        }
+        
+        // Add margin
+        minX -= margin;
+        minY -= margin;
+        minZ -= margin;
+        maxX += margin;
+        maxY += margin;
+        maxZ += margin;
+        
+        const isInside = (
+          point[0] >= minX && point[0] <= maxX &&
+          point[1] >= minY && point[1] <= maxY &&
+          point[2] >= minZ && point[2] <= maxZ
+        );
+        
+        debugLog(`    Bounding box: X[${minX.toFixed(2)}, ${maxX.toFixed(2)}], Y[${minY.toFixed(2)}, ${maxY.toFixed(2)}], Z[${minZ.toFixed(2)}, ${maxZ.toFixed(2)}]`);
+        debugLog(`    Result: ${isInside ? 'INSIDE' : 'OUTSIDE'}`);
+        
+        return isInside;
+      }
+      
+      // Check which points from slab1 are inside slab2
+      debugLog("\nChecking which points from slab1 are inside slab2:");
+      const pointsFromSlab1InsideSlab2 = [];
+      
+      for (let i = 0; i < slab1Points.length; i++) {
+        const point = slab1Points[i];
+        if (isPointInsideSolid(point, slab2Points, slab2Faces)) {
+          pointsFromSlab1InsideSlab2.push(i);
+          
+          // Visualize this point
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xdd6600 })
+          );
+          sphere.position.set(point[0], point[1], point[2]);
+          scene.add(sphere);
+        }
+      }
+      
+      debugLog(`  Points from slab1 inside slab2: [${pointsFromSlab1InsideSlab2.join(', ')}]`);
+      
+      // Check which points from slab2 are inside slab1
+      debugLog("\nChecking which points from slab2 are inside slab1:");
+      const pointsFromSlab2InsideSlab1 = [];
+      
+      for (let i = 0; i < slab2Points.length; i++) {
+        const point = slab2Points[i];
+        if (isPointInsideSolid(point, slab1Points, slab1Faces)) {
+          pointsFromSlab2InsideSlab1.push(i);
+          
+          // Visualize this point
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0x0066dd })
+          );
+          sphere.position.set(point[0], point[1], point[2]);
+          scene.add(sphere);
+        }
+      }
+      
+      debugLog(`  Points from slab2 inside slab1: [${pointsFromSlab2InsideSlab1.join(', ')}]`);
+      
+      // First calculate intersection using traditional method
+      const slabsIntersectionOld = basics.findIntersection(slab1Geometry, slab2Geometry);
+      
+      debugLog("\nIntersection result from traditional findIntersection function:");
+      debugLog(`  Points in intersection: ${slabsIntersectionOld.points.length}`);
+      debugLog(`  Faces in intersection: ${slabsIntersectionOld.faces.length}`);
+      
+      // Now calculate using the BSP method that accounts for centering
+      debugLog("\nCalculating intersection using BSP trees with centering...");
+      
+      // Create proper polyhedron objects
+      const poly1 = new Polyhedron({
+        points: slab1Points,
+        faces: slab1Faces,
+        color: 0x990000
+      });
+      
+      const poly2 = new Polyhedron({
+        points: slab2Points,
+        faces: slab2Faces,
+        color: 0x007700
+      });
+      
+      // Calculate intersection with the improved BSP-based method
+      const slabsIntersection = findIntersectionWithCentering(poly1, poly2);
+      
+      debugLog("\nIntersection result from BSP intersection with centering:");
+      debugLog(`  Points in intersection: ${slabsIntersection.points.length}`);
+      debugLog(`  Faces in intersection: ${slabsIntersection.faces.length}`);
+      
+      // Compare the traditional and BSP results
+      if (slabsIntersectionOld.points.length > 0) {
+        debugLog("\nTraditional intersection points (first 5):");
+        slabsIntersectionOld.points.slice(0, 15).forEach((point, i) => {
+          if (i % 3 === 0) {
+            const idx = i/3;
+            debugLog(`    Point ${idx}: [${slabsIntersectionOld.points.slice(i, i+3).join(', ')}]`);
+          }
+        });
+      }
+      
+      if (slabsIntersection.points.length > 0) {
+        debugLog("\nBSP intersection points (first 5):");
+        slabsIntersection.points.slice(0, 15).forEach((point, i) => {
+          if (i % 3 === 0) {
+            const idx = i/3;
+            debugLog(`    Point ${idx}: [${slabsIntersection.points.slice(i, i+3).join(', ')}]`);
+          }
+        });
+        
+        // Display traditional intersection in magenta wireframe
+        if (slabsIntersectionOld.points.length > 0) {
+          const traditionalIntersection = polyhedron({
+            points: slabsIntersectionOld.points,
+            faces: slabsIntersectionOld.faces,
+            position: { x: 0, y: 0, z: 0 },
+            color: 0xff00ff, // Magenta
+            wireframe: true,
+            opacity: 0.5,
+            transparent: true
+          });
+          scene.add(traditionalIntersection.render());
+          debugLog("\nTraditional intersection shown in magenta wireframe");
+        }
+        
+        // Visualize BSP intersection points with spheres
+        for (let i = 0; i < slabsIntersection.points.length; i += 3) {
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 12, 12),
+            new THREE.MeshBasicMaterial({ color: 0x9900cc })
+          );
+          sphere.position.set(
+            slabsIntersection.points[i],
+            slabsIntersection.points[i + 1],
+            slabsIntersection.points[i + 2]
+          );
+          scene.add(sphere);
+        }
+        
+        debugLog("\nBSP intersection faces (first 3):");
+        slabsIntersection.faces.slice(0, 3).forEach((face, i) => {
+          debugLog(`    Face ${i}: [${face.join(', ')}]`);
+        });
+        
+        // Display the BSP intersection
+        const intersectionSolid = polyhedron({
+          points: slabsIntersection.points,
+          faces: slabsIntersection.faces,
+          position: { x: 0, y: 0, z: 0 },
+          color: 0x993300, // Dark Orange
+          opacity: 0.8,
+          transparent: true
+        });
+        
+        scene.add(intersectionSolid.render());
+        debugLog("\nBSP intersection shown in solid orange");
+      } else {
+        debugLog("\nNo BSP intersection found!");
+      }
+    }
+    
+    // Call render function
+    renderObjects();
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    
+    animate();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

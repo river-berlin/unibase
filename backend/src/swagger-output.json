@@ -1687,6 +1687,276 @@
         ]
       }
     },
+    "/projects/code/{workspaceName}/{projectName}/dev": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get index.js from a project in a workspace",
+        "description": "Retrieve the index.js file from a specified project in a workspace.",
+        "operationId": "getProjectIndexByWorkspaceAndProject",
+        "parameters": [
+          {
+            "name": "workspaceName",
+            "in": "path",
+            "description": "The name of the workspace",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JS file retrieved successfully",
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string",
+                  "description": "The JavaScript file content"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "404": {
+            "description": "Workspace, project, or file not found"
+          },
+          "500": {
+            "description": "Server error - JWT_SECRET not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/code/{workspaceName}/{projectName}/{filename@dev.js}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get a specific file from a project in a workspace",
+        "description": "Retrieve a specific JavaScript file from a project in a workspace using the @dev.js suffix.",
+        "operationId": "getProjectFileByWorkspaceAndProject",
+        "parameters": [
+          {
+            "name": "workspaceName",
+            "in": "path",
+            "description": "The name of the workspace",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename@dev.js",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JS file retrieved successfully",
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string",
+                  "description": "The JavaScript file content"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "404": {
+            "description": "Workspace, project, or file not found"
+          },
+          "500": {
+            "description": "Server error - JWT_SECRET not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/projects/code/{workspaceName}/dev": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get index.js from the default project in a workspace",
+        "description": "Retrieve the index.js file from the project named \"index\" in the specified workspace.",
+        "operationId": "getDefaultProjectIndexByWorkspace",
+        "parameters": [
+          {
+            "name": "workspaceName",
+            "in": "path",
+            "description": "The name of the workspace",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JS file retrieved successfully",
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string",
+                  "description": "The JavaScript file content"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "404": {
+            "description": "Workspace, default project, or file not found"
+          },
+          "500": {
+            "description": "Server error - JWT_SECRET not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/projects/": {
       "post": {
         "tags": [
